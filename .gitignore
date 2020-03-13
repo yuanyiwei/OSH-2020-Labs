@@ -1,0 +1,8 @@
+.DS_Store
+*.o
+sh
+osh
+tmp
+temp
+.vscode
+*.flv
