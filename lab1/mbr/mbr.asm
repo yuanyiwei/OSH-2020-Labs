@@ -3,15 +3,7 @@
 
     sti
 clear:
-    mov cx,0000h
-    mov dx,184fh
-    mov bh,00h
-    mov ah,06h
-    int 10h
-    mov ah,02h
-    mov dh,24
-    mov dl,80
-    mov bh,0
+    mov ax, 03h
     int 10h
 print_str:
     mov si, OSH                         ; si points to string OSH
