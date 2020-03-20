@@ -16,7 +16,9 @@
 
 关于制作 initrd，我选择了用 C 语言 `mknod()` 的调用创建设备文件（./ttyS0 和 ./fb0）。
 
-`execv("./x", NULL);` 分别切换三个进程，在程序最后加上 `while (1);` 以防止 `init` 进程退出使 Linux 内核 kernel panic。把 init.c 文件以静态链接编译，在 cpio 下把三个可执行文件和 init 程序打包成 initrd。
+使用 `execv("./x", NULL);` 分别切换三个进程，并用 `fork()==0;` 判断当前进程是否为子进程。
+
+在 init 程序最后加上 `while (1);` 以防止 init 进程退出，而使 Linux 内核 kernel panic。最后把 init.c 文件以静态链接编译，在 cpio 下把三个可执行文件和 init 程序打包成 initrd。
 
 ## x86 裸金属 MBR 程序
 
@@ -53,19 +55,19 @@ loop:
 
 - 在使用 `make menuconfig` 调整 Linux 编译选项的时候，你会看到有些选项是使用 `[M]` 标记的。它们是什么意思？在你的 `init` 启动之前的整个流程中它们会被加载吗？如果不，在正常的 Linux 系统中，它们是怎么被加载的？
 
-`[M]` 标记意思是作为模块构建，这些模块并不在 `init` 启动之前的整个流程中加载，会在 Linux Kernel 启动后被 insmod 加载。
+`[M]` 标记意思是作为模块构建，这些模块并不在 `init` 启动之前的整个流程中加载。在正常的 Linux 系统中，这些模块会在 Linux Kernel 启动后被 insmod 加载。
 
 - 在「构建 initrd」的教程中我们创建了一个示例的 init 程序。为什么屏幕上输出 "Hello, Linux!" 之后，Linux 内核就立刻 kernel panic 了？
 
-`init` 进程去打开标准输入、标注输出、标准出错输出，然后 0 1 2 分别指向打开的文件，之后所有进程的 0 1 2 文件实际上都是从最开始的 `init` 进程那里继承而来的。因此主进程 `init` 退出了之后，Linux 内核会 Kernel Panic。
+init 进程去打开标准输入、标注输出、标准出错输出，然后 0，1，2 分别指向打开的文件，之后所有进程的 0，1，2 文件实际上都是从最开始的 init 进程那里继承而来的。因此主进程 init 退出了之后，Linux 内核会 Kernel Panic。
 
 - 为什么我们编写 C 语言版本的 init 程序在编译时需要静态链接？我们能够在这里使用动态链接吗？
 
-静态链接把调用的函数都集成到了域程序里，而动态链接依赖于系统内置或用户引入的库文件。因此我们不能在这里使用动态链接。
+静态链接把调用的函数都集成到了域程序里，而动态链接依赖于系统内置或用户引入的库文件。我们在 initrd 里没有打包库文件，因此我们不能在这里使用动态链接。
 
 - 在 Vlab 平台上，即使是真正的 root 也无法使用 mknod 等命令，查找资料，尝试简要说明为什么 fakeroot 环境却能够正常使用这些命令。
 
-因为 fakeroot 在看起来具有文件操作的 root 特权的环境中运行命令。
+因为 fakeroot 可以在看起来具有文件操作的 root 特权的环境中运行命令。
 
 - MBR 能够用于编程的部分只有 510 字节，而目前的系统引导器（如 GRUB2）可以实现很多复杂的功能：如从不同的文件系统中读取文件、引导不同的系统启动、提供美观的引导选择界面等，用 510 字节显然是无法做到这些功能的。它们是怎么做到的？
 
@@ -78,4 +80,6 @@ loop:
 ## 参考
 
 - [fork and execv](https://www.cnblogs.com/HKUI/articles/9576788.html)
+- [system and execv](https://blog.csdn.net/qq_25349629/article/details/78364247)
+- [system](https://blog.csdn.net/linluan33/article/details/8097916)
 - [asm int 10h](https://www.itzhai.com/assembly-int-10h-description.html)
