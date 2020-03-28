@@ -1,5 +1,5 @@
 .DS_Store
-*.o
+*.out
 sh
 osh
 tmp
