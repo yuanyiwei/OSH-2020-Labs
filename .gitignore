@@ -1,9 +1,6 @@
-.DS_Store
+*.o
 *.out
 sh
-osh
 tmp
 temp
 .vscode
-*.flv
-asm
