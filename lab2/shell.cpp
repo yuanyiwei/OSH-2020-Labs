@@ -8,29 +8,20 @@
 
 int main()
 {
-	char cmd[256];   //input
+	char cmd[256];	 //input
 	char *args[128]; //args end in NULL
-	int i;
-	int pid;
-	int stat_val;
-	int isRedirect;
-	int isPipe;
-	int isBack;
-	int position;
+	int i, pid, stat_val, isRedirect, isPipe, isBack, position;
 	while (1)
 	{
 		isRedirect = 0;
 		isPipe = 0;
 		position = 0;
-		/* 提示符 */
 		printf("# ");
 		fflush(stdin);
 		fgets(cmd, 256, stdin);
 		i = 0;
 		while (cmd[i] != '\n')
-		{
 			i++;
-		}
 		cmd[i] = '\0';
 		args[0] = cmd;
 		for (i = 0; *args[i]; i++)
@@ -91,6 +82,7 @@ int main()
 		{
 			return 0;
 		}
+
 		if (strcmp(args[i - 1], "&") == 0)
 		{
 			args[i - 1] = NULL;
@@ -164,6 +156,7 @@ int main()
 				if (!WIFEXITED(stat_val))
 					printf("Child terminated abnormally\n");
 			}
+			continue;
 		}
 
 		/* 外部命令 */
