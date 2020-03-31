@@ -3,11 +3,18 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <errno.h>
 
+void sighandler(int signum)
+{
+	// keep alive
+}
+
 int main()
 {
+	signal(SIGINT, sighandler);
 	char cmd[256];	 //input
 	char *args[128]; //args end in NULL
 	int i, pid, stat_val, isRedirect, isPipe, isBack, position;
