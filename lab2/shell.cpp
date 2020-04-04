@@ -63,7 +63,7 @@ int spCMD(char cmd[BUFF_SZ])
 		{
 			if (j != 0)
 			{
-				argvs[k][j] = '\0'; // PIPE |  yiding yao kongge?
+				argvs[k][j] = '\0'; // PIPE x|y
 				k++;
 				j = 0;
 			}
@@ -233,7 +233,7 @@ int PIPE_CMD(int left, int right)
 			{
 				strcat(info, line);
 			}
-			printf("%s", info);
+			printf("%s\n", info);
 			END_ = exitCode;
 		}
 		else if (pipeIndex + 1 < right)
@@ -314,19 +314,19 @@ int main()
 				if (argc < 2)
 				{
 					result = ERROR_MISS_PARAMETER;
-					fprintf(stderr, "Error miss parameter");
+					fprintf(stderr, "Error miss parameter\n");
 				}
 				else if (argc > 2)
 				{
 					result = ERROR_TOO_MANY_PARAMETER;
-					fprintf(stderr, "Error too many parameter");
+					fprintf(stderr, "Error too many parameter\n");
 				}
 				else
 				{
 					if (chdir(argvs[1]))
 					{
 						result = ERROR_WRONG_PARAMETER;
-						fprintf(stderr, "Error wrong parameter");
+						fprintf(stderr, "Error wrong parameter\n");
 					}
 					else
 					{
@@ -340,25 +340,25 @@ int main()
 				switch (result)
 				{
 				case ERROR_FORK:
-					fprintf(stderr, "Error fork");
+					fprintf(stderr, "Error fork\n");
 					exit(ERROR_FORK);
 				case ERROR_COMMAND:
-					fprintf(stderr, "Error command");
+					fprintf(stderr, "Error command\n");
 					break;
 				case ERROR_IN:
-					fprintf(stderr, "Error in redirection");
+					fprintf(stderr, "Error in redirection\n");
 					break;
 				case ERROR_OUT:
-					fprintf(stderr, "Error out redirection");
+					fprintf(stderr, "Error out redirection\n");
 					break;
 				case ERROR_MISS_PARAMETER:
-					fprintf(stderr, "Error redirect parameters");
+					fprintf(stderr, "Error redirect parameters\n");
 					break;
 				case ERROR_PIPE:
-					fprintf(stderr, "Error pipe");
+					fprintf(stderr, "Error pipe\n");
 					break;
 				case ERROR_PIPE_MISS_PARAMETER:
-					fprintf(stderr, "Error pipe parameters");
+					fprintf(stderr, "Error pipe parameters\n");
 					break;
 				}
 			}
