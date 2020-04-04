@@ -11,28 +11,28 @@ void sighandler(int signum)
 {
 	// keep alive
 }
-const int BUFF_SZ 256;
-const int CMD_SZ 128;
+#define BUFF_SZ 256
+#define CMD_SZ 128
 enum
 {
-	RESULT_NORMAL = 0,
+	RESULT = 0,
 	ERROR_FORK,
 	ERROR_COMMAND,
 	ERROR_TOO_MANY_PARAMETER,
-	ERROR_CD,
-	ERROR_EXIT,
 
-	// redirect
 	ERROR_MANY_IN,
 	ERROR_MANY_OUT,
 
-	// Pipe
 	ERROR_PIPE,
+
+	ERROR_EXIT,
 };
 
-int splitCMD(char cmd[BUFF_SZ])
+int splitCMD(char cmd[BUFF_SZ], char *argvs[CMD_SZ])
 {
-	for (int i = 0; *argvs[i]; i++)
+	int i;
+	argvs[0] = cmd;
+	for (i = 0; *argvs[i]; i++)
 		for (argvs[i + 1] = argvs[i] + 1; *argvs[i + 1]; argvs[i + 1]++)
 			if (*argvs[i + 1] == ' ')
 			{
@@ -40,6 +40,7 @@ int splitCMD(char cmd[BUFF_SZ])
 				argvs[i + 1]++;
 				break;
 			}
+	argvs[i] = 0;
 }
 
 int main()
@@ -62,9 +63,7 @@ int main()
 			i++;
 		}
 		cmd[i] = '\0';
-		argvs[0] = cmd;
-		splitCMD(argvs[0]);
-		argvs[i] = NULL;
+		splitCMD(cmd, argvs);
 
 		for (i = 0; argvs[i] != NULL; i++)
 		{
@@ -87,13 +86,26 @@ int main()
 		if (strcmp(argvs[0], "cd") == 0)
 		{
 			if (argvs[1])
+			{
 				chdir(argvs[1]);
+			}
+			else
+			{
+				return ERROR_COMMAND;
+			}
 			continue;
 		}
 		if (strcmp(argvs[0], "pwd") == 0)
 		{
 			char wd[4096];
-			puts(getcwd(wd, 4096));
+			if (getcwd(wd, 4096) == nullptr)
+			{
+				puts(wd);
+			}
+			else
+			{
+				return ERROR_COMMAND;
+			}
 			continue;
 		}
 		if (strcmp(argvs[0], "export") == 0)
@@ -112,7 +124,15 @@ int main()
 		}
 		if (strcmp(argvs[0], "exit") == 0)
 		{
-			return 0;
+			pid = getpid();
+			if (kill(pid, SIGTERM) == -1)
+			{
+				return ERROR_EXIT;
+			}
+			else
+			{
+				return RESULT;
+			}
 		}
 
 		if (strcmp(argvs[i - 1], "&") == 0)
