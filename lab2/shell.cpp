@@ -11,13 +11,43 @@ void sighandler(int signum)
 {
 	// keep alive
 }
+const int BUFF_SZ 256;
+const int CMD_SZ 128;
+enum
+{
+	RESULT_NORMAL = 0,
+	ERROR_FORK,
+	ERROR_COMMAND,
+	ERROR_TOO_MANY_PARAMETER,
+	ERROR_CD,
+	ERROR_EXIT,
+
+	// redirect
+	ERROR_MANY_IN,
+	ERROR_MANY_OUT,
+
+	// Pipe
+	ERROR_PIPE,
+};
+
+int splitCMD(char cmd[BUFF_SZ])
+{
+	for (int i = 0; *argvs[i]; i++)
+		for (argvs[i + 1] = argvs[i] + 1; *argvs[i + 1]; argvs[i + 1]++)
+			if (*argvs[i + 1] == ' ')
+			{
+				*argvs[i + 1] = '\0';
+				argvs[i + 1]++;
+				break;
+			}
+}
 
 int main()
 {
 	signal(SIGINT, sighandler);
-	char cmd[256];	 //input
-	char *args[128]; //args end in NULL
-	int i, pid, stat_val, isRedirect, isPipe, isBack, position;
+	char cmd[BUFF_SZ];	 //input
+	char *argvs[CMD_SZ]; //argvs end in NULL
+	int i, pid, stat_val, isRedirect, isPipe, isBack, position, argc;
 	while (1)
 	{
 		isRedirect = 0;
@@ -25,30 +55,25 @@ int main()
 		position = 0;
 		printf("# ");
 		fflush(stdin);
-		fgets(cmd, 256, stdin);
+		fgets(cmd, BUFF_SZ, stdin);
 		i = 0;
 		while (cmd[i] != '\n')
-			i++;
-		cmd[i] = '\0';
-		args[0] = cmd;
-		for (i = 0; *args[i]; i++)
-			for (args[i + 1] = args[i] + 1; *args[i + 1]; args[i + 1]++)
-				if (*args[i + 1] == ' ')
-				{
-					*args[i + 1] = '\0';
-					args[i + 1]++;
-					break;
-				}
-		args[i] = NULL;
-
-		for (i = 0; args[i] != NULL; i++)
 		{
-			if (!strcmp(args[i], "<") || !strcmp(args[i], ">"))
+			i++;
+		}
+		cmd[i] = '\0';
+		argvs[0] = cmd;
+		splitCMD(argvs[0]);
+		argvs[i] = NULL;
+
+		for (i = 0; argvs[i] != NULL; i++)
+		{
+			if (!strcmp(argvs[i], "<") || !strcmp(argvs[i], ">"))
 			{
 				isRedirect = 1;
 				position = i;
 			}
-			if (!strcmp(args[i], "|"))
+			if (!strcmp(argvs[i], "|"))
 			{
 				isPipe = 1;
 				position = i;
@@ -56,27 +81,27 @@ int main()
 		}
 		//a lot of pipe????
 
-		if (!args[0])
+		if (!argvs[0])
 			continue;
 
-		if (strcmp(args[0], "cd") == 0)
+		if (strcmp(argvs[0], "cd") == 0)
 		{
-			if (args[1])
-				chdir(args[1]);
+			if (argvs[1])
+				chdir(argvs[1]);
 			continue;
 		}
-		if (strcmp(args[0], "pwd") == 0)
+		if (strcmp(argvs[0], "pwd") == 0)
 		{
 			char wd[4096];
 			puts(getcwd(wd, 4096));
 			continue;
 		}
-		if (strcmp(args[0], "export") == 0)
+		if (strcmp(argvs[0], "export") == 0)
 		{
-			for (i = 1; args[i] != NULL; i++)
+			for (i = 1; argvs[i] != NULL; i++)
 			{
-				char *name = args[i];
-				char *value = args[i] + 1;
+				char *name = argvs[i];
+				char *value = argvs[i] + 1;
 				while (*value != '\0' && *value != '=')
 					value++;
 				*value = '\0';
@@ -85,14 +110,14 @@ int main()
 			}
 			continue;
 		}
-		if (strcmp(args[0], "exit") == 0)
+		if (strcmp(argvs[0], "exit") == 0)
 		{
 			return 0;
 		}
 
-		if (strcmp(args[i - 1], "&") == 0)
+		if (strcmp(argvs[i - 1], "&") == 0)
 		{
-			args[i - 1] = NULL;
+			argvs[i - 1] = NULL;
 			pid = fork(); //bulid a runback process,and don't eliminate the parent process
 			if (pid == -1)
 			{
@@ -105,7 +130,7 @@ int main()
 					perror("Child faild to become a session leader");
 				else
 				{
-					execvp(args[0], args);
+					execvp(argvs[0], argvs);
 					printf("Command not found in PATH\n");
 					exit(0);
 				}
@@ -118,8 +143,8 @@ int main()
 			pid_t child, gChild;
 			int file_pipes[2];
 			char **command;
-			command = &args[position + 1];
-			args[position] = NULL;
+			command = &argvs[position + 1];
+			argvs[position] = NULL;
 			child = fork();
 			switch (child)
 			{
@@ -143,7 +168,7 @@ int main()
 						dup2(file_pipes[1], 1);
 						close(file_pipes[1]);
 						close(file_pipes[0]);
-						execvp(args[0], args);
+						execvp(argvs[0], argvs);
 						printf("Command not found in PATH\n");
 						exit(0);
 
@@ -171,7 +196,7 @@ int main()
 		if (pid == 0)
 		{
 			/* 子进程 */
-			execvp(args[0], args);
+			execvp(argvs[0], argvs);
 			/* execvp失败 */
 			return 255;
 		}
