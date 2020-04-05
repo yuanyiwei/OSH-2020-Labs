@@ -6,9 +6,10 @@ char argvs[BUFF_SZ][BUFF_SZ];
 int ELF_(const char *cmd)
 {
 	if (cmd == 0 || strlen(cmd) == 0)
+	{
 		return 0;
-	int END_ = 1;
-	int fSTD[2];
+	}
+	int END_ = 1, fSTD[2];
 	if (pipe(fSTD) == -1)
 	{
 		END_ = 0;
@@ -51,7 +52,7 @@ int ELF_(const char *cmd)
 int spCMD(char cmd[BUFF_SZ])
 {
 	int i, j, k = 0, len = strlen(cmd);
-	for (i = 0, j = 0; i < len; ++i)
+	for (i = 0, j = 0; i < len; i++)
 	{
 		if (cmd[i] != ' ')
 		{
@@ -83,7 +84,7 @@ int RED_CMD(int left, int right)
 	int l = 0, r = 0, rr = 0, endIndex = right;
 	char *inFile = 0, *outFile = 0;
 
-	for (int i = left; i < right; ++i)
+	for (int i = left; i < right; i++)
 	{
 		if (strcmp(argvs[i], _RIN) == 0)
 		{
@@ -175,13 +176,13 @@ int RED_CMD(int left, int right)
 		{
 			freopen(outFile, "aw", stdout);
 		}
-		char *comm[BUFF_SZ];
-		for (int i = left; i < endIndex; ++i)
+		char *buf[BUFF_SZ];
+		for (int i = left; i < endIndex; i++)
 		{
-			comm[i] = argvs[i];
+			buf[i] = argvs[i];
 		}
-		comm[endIndex] = 0;
-		execvp(comm[left], comm + left);
+		buf[endIndex] = 0;
+		execvp(buf[left], buf + left);
 		exit(errno);
 	}
 	else
@@ -203,7 +204,7 @@ int PIPE_CMD(int left, int right)
 		return OK;
 	}
 	int pipeIndex = -1;
-	for (int i = left; i < right; ++i)
+	for (int i = left; i < right; i++)
 	{
 		if (strcmp(argvs[i], _PIPE) == 0)
 		{
@@ -302,6 +303,21 @@ int CALL_(int commandNum)
 		return WEXITSTATUS(status);
 	}
 }
+int EXPORT_() // bugs
+{
+	for (int i = 1; argvs[i] != 0; i++)
+	{
+		char *name = argvs[i];
+		char *value = argvs[i] + 1;
+		while (*value != '\0' && *value != '=')
+		{
+			value++;
+		}
+		*value = '\0';
+		value++;
+		setenv(name, value, 1);
+	}
+}
 void sighandler(int signum)
 {
 	// keep alive, todo ctrl+d
@@ -328,6 +344,14 @@ int main()
 				if (result == ERROR_EXIT)
 				{
 					exit(-1);
+				}
+			}
+			else if (strcmp(argvs[0], "export") == 0)
+			{
+				result = EXPORT_();
+				if (result == ERROR_COMMAND)
+				{
+					fprintf(stderr, "Error export\n");
 				}
 			}
 			else if (strcmp(argvs[0], _CD) == 0)
@@ -373,13 +397,13 @@ int main()
 					fprintf(stderr, "Error out redirection\n");
 					break;
 				case ERROR_MISS_PARAMETER:
-					fprintf(stderr, "Error redirect parameters\n");
+					fprintf(stderr, "Error redirect parameter\n");
 					break;
 				case ERROR_PIPE:
 					fprintf(stderr, "Error pipe\n");
 					break;
 				case ERROR_PIPE_MISS_PARAMETER:
-					fprintf(stderr, "Error pipe parameters\n");
+					fprintf(stderr, "Error pipe parameter\n");
 					break;
 				}
 			}
