@@ -1,5 +1,6 @@
 #include "sh.h"
 
+int argc;
 int result;
 char argvs[BUFF_SZ][BUFF_SZ];
 
@@ -9,8 +10,8 @@ int ELF_(const char *cmd)
 	{
 		return 0;
 	}
-	int END_ = 1, fSTD[2];
-	if (pipe(fSTD) == -1)
+	int END_ = 1, fd[2];
+	if (pipe(fd) == -1)
 	{
 		END_ = 0;
 	}
@@ -18,16 +19,16 @@ int ELF_(const char *cmd)
 	{
 		int inSTD = dup(STDIN_FILENO);
 		int outSTD = dup(STDOUT_FILENO);
-		int pid = vfork();
+		int pid = fork();
 		if (pid == -1)
 		{
 			END_ = 0;
 		}
 		else if (pid == 0)
 		{
-			close(fSTD[0]);
-			dup2(fSTD[1], STDOUT_FILENO);
-			close(fSTD[1]);
+			close(fd[0]);
+			dup2(fd[1], STDOUT_FILENO);
+			close(fd[1]);
 			char buf[BUFF_SZ];
 			sprintf(buf, "command -v %s", cmd);
 			system(buf);
@@ -36,9 +37,9 @@ int ELF_(const char *cmd)
 		else
 		{
 			waitpid(pid, 0, 0);
-			close(fSTD[1]);
-			dup2(fSTD[0], STDIN_FILENO);
-			close(fSTD[0]);
+			close(fd[1]);
+			dup2(fd[0], STDIN_FILENO);
+			close(fd[0]);
 			if (getchar() == EOF)
 			{
 				END_ = 0;
@@ -49,24 +50,22 @@ int ELF_(const char *cmd)
 	}
 	return END_;
 }
-int spCMD(char cmd[BUFF_SZ])
+int spCMD(char cmd[BUFF_SZ]) // PIPE x|y  and 'x x'
 {
-	int i, j, k = 0, len = strlen(cmd);
-	for (i = 0, j = 0; i < len; i++)
+	int i = 0, j = 0, k = 0, len = strlen(cmd);
+	while (i < len)
 	{
 		if (cmd[i] != ' ')
 		{
 			argvs[k][j++] = cmd[i];
 		}
-		else
+		else if (j != 0)
 		{
-			if (j != 0)
-			{
-				argvs[k][j] = '\0'; // PIPE x|y
-				k++;
-				j = 0;
-			}
+			argvs[k][j] = '\0';
+			j = 0;
+			k++;
 		}
+		i++;
 	}
 	if (j != 0)
 	{
@@ -157,7 +156,7 @@ int RED_CMD(int left, int right)
 		return ERROR_OUT;
 	}
 	int END_ = OK;
-	int pid = vfork();
+	int pid = fork();
 	if (pid == -1)
 	{
 		END_ = ERROR_FORK;
@@ -220,22 +219,22 @@ int PIPE_CMD(int left, int right)
 	{
 		return ERROR_PIPE_MISS_PARAMETER;
 	}
-	int fSTD[2];
-	if (pipe(fSTD) == -1)
+	int fd[2];
+	if (pipe(fd) == -1)
 	{
 		return ERROR_PIPE;
 	}
 	int END_ = OK;
-	int pid = vfork();
+	int pid = fork();
 	if (pid == -1)
 	{
 		END_ = ERROR_FORK;
 	}
 	else if (pid == 0)
 	{
-		close(fSTD[0]);
-		dup2(fSTD[1], STDOUT_FILENO);
-		close(fSTD[1]);
+		close(fd[0]);
+		dup2(fd[1], STDOUT_FILENO);
+		close(fd[1]);
 		END_ = RED_CMD(left, pipeIndex);
 		exit(END_);
 	}
@@ -248,9 +247,9 @@ int PIPE_CMD(int left, int right)
 		{
 			char info[4096] = {0};
 			char line[BUFF_SZ];
-			close(fSTD[1]);
-			dup2(fSTD[0], STDIN_FILENO);
-			close(fSTD[0]);
+			close(fd[1]);
+			dup2(fd[0], STDIN_FILENO);
+			close(fd[0]);
 			while (fgets(line, BUFF_SZ, stdin) != 0)
 			{
 				strcat(info, line);
@@ -260,9 +259,9 @@ int PIPE_CMD(int left, int right)
 		}
 		else if (pipeIndex + 1 < right)
 		{
-			close(fSTD[1]);
-			dup2(fSTD[0], STDIN_FILENO);
-			close(fSTD[0]);
+			close(fd[1]);
+			dup2(fd[0], STDIN_FILENO);
+			close(fd[0]);
 			END_ = PIPE_CMD(pipeIndex + 1, right);
 		}
 	}
@@ -280,7 +279,7 @@ int EXIT_()
 		return OK;
 	}
 }
-int CALL_(int commandNum)
+int CALL_(int cmd)
 {
 	int pid = fork();
 	if (pid == -1)
@@ -291,7 +290,7 @@ int CALL_(int commandNum)
 	{
 		int inFds = dup(STDIN_FILENO);
 		int outFds = dup(STDOUT_FILENO);
-		int END_ = PIPE_CMD(0, commandNum);
+		int END_ = PIPE_CMD(0, cmd);
 		dup2(inFds, STDIN_FILENO);
 		dup2(outFds, STDOUT_FILENO);
 		exit(END_);
@@ -303,20 +302,28 @@ int CALL_(int commandNum)
 		return WEXITSTATUS(status);
 	}
 }
-int EXPORT_() // bugs
+int EXPORT_()
 {
-	for (int i = 1; argvs[i] != 0; i++)
+	for (int i = 1; i < argc; i++)
 	{
 		char *name = argvs[i];
 		char *value = argvs[i] + 1;
-		while (*value != '\0' && *value != '=')
+		while (*value != '=')
 		{
-			value++;
+			if (*value != '\0')
+			{
+				value++;
+			}
+			else
+			{
+				return ERROR_COMMAND;
+			}
 		}
 		*value = '\0';
 		value++;
 		setenv(name, value, 1);
 	}
+	return OK;
 }
 void sighandler(int signum)
 {
@@ -335,7 +342,7 @@ int main()
 		{
 			argv[len - 1] = '\0';
 		}
-		int argc = spCMD(argv);
+		argc = spCMD(argv);
 		if (argc != 0)
 		{
 			if (strcmp(argvs[0], "exit") == 0)
