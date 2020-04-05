@@ -1,6 +1,4 @@
-#ifndef TOTORO_SH
 #include "sh.h"
-#endif
 
 int result;
 char argvs[BUFF_SZ][BUFF_SZ];
@@ -82,15 +80,14 @@ int RED_CMD(int left, int right)
 	{
 		return ERROR_COMMAND;
 	}
-	int inNum = 0, outNum = 0;
+	int l = 0, r = 0, rr = 0, endIndex = right;
 	char *inFile = 0, *outFile = 0;
-	int endIndex = right;
 
 	for (int i = left; i < right; ++i)
 	{
 		if (strcmp(argvs[i], _RIN) == 0)
 		{
-			++inNum;
+			l++;
 			if (i + 1 < right)
 			{
 				inFile = argvs[i + 1];
@@ -104,9 +101,25 @@ int RED_CMD(int left, int right)
 				endIndex = i;
 			}
 		}
-		else if (strcmp(argvs[i], _ROUT) == 0) // todo >>
+		else if (strcmp(argvs[i], _ROUT) == 0)
 		{
-			outNum++;
+			r++;
+			if (i + 1 < right)
+			{
+				outFile = argvs[i + 1];
+			}
+			else
+			{
+				return ERROR_MISS_PARAMETER;
+			}
+			if (endIndex == right)
+			{
+				endIndex = i;
+			}
+		}
+		else if (strcmp(argvs[i], _RROUT) == 0)
+		{
+			rr++;
 			if (i + 1 < right)
 			{
 				outFile = argvs[i + 1];
@@ -121,7 +134,7 @@ int RED_CMD(int left, int right)
 			}
 		}
 	}
-	if (inNum == 1)
+	if (l == 1)
 	{
 		FILE *fp = fopen(inFile, "r");
 		if (fp == 0)
@@ -130,11 +143,15 @@ int RED_CMD(int left, int right)
 		}
 		fclose(fp);
 	}
-	if (inNum > 1)
+	if (l > 1)
 	{
 		return ERROR_IN;
 	}
-	else if (outNum > 1)
+	else if (r > 1)
+	{
+		return ERROR_OUT;
+	}
+	else if (rr > 1)
 	{
 		return ERROR_OUT;
 	}
@@ -146,13 +163,17 @@ int RED_CMD(int left, int right)
 	}
 	else if (pid == 0)
 	{
-		if (inNum == 1)
+		if (l == 1)
 		{
 			freopen(inFile, "r", stdin);
 		}
-		if (outNum == 1)
+		if (r == 1)
 		{
 			freopen(outFile, "w", stdout);
+		}
+		else if (rr == 1)
+		{
+			freopen(outFile, "aw", stdout);
 		}
 		char *comm[BUFF_SZ];
 		for (int i = left; i < endIndex; ++i)

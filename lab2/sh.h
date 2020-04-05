@@ -15,6 +15,7 @@
 const char *_CD = "cd";
 const char *_RIN = "<";
 const char *_ROUT = ">";
+const char *_RROUT = ">>";
 const char *_PIPE = "|";
 enum
 {
