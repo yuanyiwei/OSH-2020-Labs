@@ -325,13 +325,18 @@ int EXPORT_()
 	}
 	return OK;
 }
-void sighandler(int signum)
+void sighandlerd(int sig)
 {
-	// keep alive, todo ctrl+d
+	kill(getpid(), SIGTERM); // multisignal?
+}
+void sighandlerc(int sig)
+{
+	printf("\n");
 }
 int main()
 {
-	signal(SIGINT, sighandler);
+	signal(SIGINT, sighandlerc);
+	// signal(SIGHUP, sighandlerd);
 	char argv[BUFF_SZ];
 	while (1)
 	{
