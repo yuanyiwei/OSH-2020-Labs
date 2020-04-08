@@ -327,7 +327,7 @@ int EXPORT_()
 }
 void sighandlerc(int sig)
 {
-	printf("\n➜  ");
+	printf(GREEN_ "\n➜  " RESET_);
 	fflush(0);
 }
 int main()
@@ -336,7 +336,7 @@ int main()
 	char argv[BUFF_SZ];
 	while (1)
 	{
-		printf("➜  ");
+		printf(GREEN_ "➜  " RESET_); // todo colorful
 		fgets(argv, BUFF_SZ, stdin);
 		int len = strlen(argv);
 		if (len != BUFF_SZ)
@@ -366,20 +366,28 @@ int main()
 			{
 				if (argc < 2)
 				{
-					result = ERROR_MISS_PARAMETER;
-					fprintf(stderr, "Error miss parameter\n");
+					char *userhome = getenv("HOME");
+					if (chdir(userhome))
+					{
+						result = ERROR_WRONG_PARAMETER;
+						fprintf(stderr, RED_ "Error wrong parameter\n" RESET_);
+					}
+					else
+					{
+						result = OK;
+					}
 				}
 				else if (argc > 2)
 				{
 					result = ERROR_TOO_MANY_PARAMETER;
-					fprintf(stderr, "Error too many parameter\n");
+					fprintf(stderr, RED_ "Error too many parameter\n" RESET_);
 				}
 				else
 				{
 					if (chdir(argvs[1]))
 					{
 						result = ERROR_WRONG_PARAMETER;
-						fprintf(stderr, "Error wrong parameter\n");
+						fprintf(stderr, RED_ "Error wrong parameter\n" RESET_);
 					}
 					else
 					{
