@@ -14,6 +14,7 @@
 #define BUFF_SZ 256
 
 const char *_CD = "cd";
+const char *_ECHO = "echo";
 const char *_RIN = "<";
 const char *_ROUT = ">";
 const char *_RROUT = ">>";

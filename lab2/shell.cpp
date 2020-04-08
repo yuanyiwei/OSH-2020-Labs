@@ -2,13 +2,43 @@
 
 int argc;
 int result;
+char *userhome;
+char argv[BUFF_SZ];
 char argvs[BUFF_SZ][BUFF_SZ];
 
-int ELF_(const char *cmd)
+int ECHO_(int argc, char **argvs)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp(argvs[i], "~") == 0)
+		{
+			fprintf(stdout, "%s ", userhome);
+		}
+		else if (strcmp(argvs[i], "~root") == 0)
+		{
+			fprintf(stdout, "/root ");
+		}
+		else if (argvs[i][0] == '$')
+		{
+			fprintf(stdout, "%s ", getenv(argvs[i] + 1));
+		}
+		else
+		{
+			fprintf(stdout, "%s ", argvs[i]);
+		}
+	}
+	fprintf(stdout, "\n");
+	return OK;
+}
+int isELF_(const char *cmd)
 {
 	if (cmd == 0 || strlen(cmd) == 0)
 	{
 		return 0;
+	}
+	if (strcmp(cmd, "echo") == 0)
+	{
+		return 233;
 	}
 	int END_ = 1, fd[2];
 	if (pipe(fd) == -1)
@@ -76,7 +106,7 @@ int spCMD(char cmd[BUFF_SZ]) // PIPE x|y  and 'x x'
 }
 int RED_CMD(int left, int right)
 {
-	if (!ELF_(argvs[left]))
+	if (!isELF_(argvs[left]))
 	{
 		return ERROR_COMMAND;
 	}
@@ -155,6 +185,7 @@ int RED_CMD(int left, int right)
 	{
 		return ERROR_OUT;
 	}
+
 	int END_ = OK;
 	int pid = fork();
 	if (pid == -1)
@@ -181,7 +212,14 @@ int RED_CMD(int left, int right)
 			buf[i] = argvs[i];
 		}
 		buf[endIndex] = 0;
-		execvp(buf[left], buf + left);
+		if (strcmp(buf[left], "echo") == 0)
+		{
+			ECHO_(endIndex - left, buf + left);
+		}
+		else
+		{
+			execvp(buf[left], buf + left);
+		}
 		exit(errno);
 	}
 	else
@@ -279,7 +317,7 @@ int EXIT_()
 		return OK;
 	}
 }
-int CALL_(int cmd)
+int CALL_(int cmd, int start = 0)
 {
 	int pid = fork();
 	if (pid == -1)
@@ -290,7 +328,7 @@ int CALL_(int cmd)
 	{
 		int inFds = dup(STDIN_FILENO);
 		int outFds = dup(STDOUT_FILENO);
-		int END_ = PIPE_CMD(0, cmd);
+		int END_ = PIPE_CMD(start, cmd);
 		dup2(inFds, STDIN_FILENO);
 		dup2(outFds, STDOUT_FILENO);
 		exit(END_);
@@ -333,7 +371,7 @@ void sighandlerc(int sig)
 int main()
 {
 	signal(SIGINT, sighandlerc);
-	char argv[BUFF_SZ];
+	userhome = getenv("HOME");
 	while (1)
 	{
 		printf(GREEN_ "➜  " RESET_); // todo colorful
@@ -366,7 +404,6 @@ int main()
 			{
 				if (argc < 2)
 				{
-					char *userhome = getenv("HOME");
 					if (chdir(userhome))
 					{
 						result = ERROR_WRONG_PARAMETER;
