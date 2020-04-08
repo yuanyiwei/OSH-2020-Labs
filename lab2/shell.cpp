@@ -325,18 +325,14 @@ int EXPORT_()
 	}
 	return OK;
 }
-void sighandlerd(int sig)
-{
-	kill(getpid(), SIGTERM); // multisignal?
-}
 void sighandlerc(int sig)
 {
-	printf("\n");
+	printf("\n➜  ");
+	fflush(0);
 }
 int main()
 {
 	signal(SIGINT, sighandlerc);
-	// signal(SIGHUP, sighandlerd);
 	char argv[BUFF_SZ];
 	while (1)
 	{
