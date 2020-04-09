@@ -229,7 +229,7 @@ int RED_CMD(int left, int right)
 		int err = WEXITSTATUS(status);
 		if (err)
 		{
-			printf("%s\n", strerror(err));
+			printf(RED_ "%s\n" RESET_, strerror(err));
 		}
 	}
 	return END_;
@@ -380,7 +380,7 @@ int main()
 	userhome = getenv("HOME");
 	while (1)
 	{
-		printf(GREEN_ "➜  " RESET_); // todo colorful
+		printf(GREEN_ "➜  " RESET_);
 		fgets(argv, BUFF_SZ, stdin);
 		int len = strlen(argv);
 		if (len != BUFF_SZ)
@@ -403,7 +403,7 @@ int main()
 				result = EXPORT_();
 				if (result == ERROR_COMMAND)
 				{
-					fprintf(stderr, "Error export\n");
+					fprintf(stderr, RED_ "Error export\n" RESET_);
 				}
 			}
 			else if (strcmp(argvs[0], _CD) == 0)
@@ -444,25 +444,25 @@ int main()
 				switch (result)
 				{
 				case ERROR_FORK:
-					fprintf(stderr, "Error fork\n");
+					fprintf(stderr, RED_ "Error fork\n" RESET_);
 					exit(ERROR_FORK);
 				case ERROR_COMMAND:
-					fprintf(stderr, "Error command\n");
+					fprintf(stderr, RED_ "Error command\n" RESET_);
 					break;
 				case ERROR_IN:
-					fprintf(stderr, "Error in redirection\n");
+					fprintf(stderr, RED_ "Error in redirection\n" RESET_);
 					break;
 				case ERROR_OUT:
-					fprintf(stderr, "Error out redirection\n");
+					fprintf(stderr, RED_ "Error out redirection\n" RESET_);
 					break;
 				case ERROR_MISS_PARAMETER:
-					fprintf(stderr, "Error redirect parameter\n");
+					fprintf(stderr, RED_ "Error redirect parameter\n" RESET_);
 					break;
 				case ERROR_PIPE:
-					fprintf(stderr, "Error pipe\n");
+					fprintf(stderr, RED_ "Error pipe\n" RESET_);
 					break;
 				case ERROR_PIPE_MISS_PARAMETER:
-					fprintf(stderr, "Error pipe parameter\n");
+					fprintf(stderr, RED_ "Error pipe parameter\n" RESET_);
 					break;
 				}
 			}
