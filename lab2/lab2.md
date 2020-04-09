@@ -13,3 +13,4 @@
 ## 参考
 
 [dash](https://git.kernel.org/pub/scm/utils/dash/dash)
+[bash](https://www.gnu.org/software/bash/manual)

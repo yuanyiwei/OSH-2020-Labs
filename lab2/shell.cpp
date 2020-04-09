@@ -365,8 +365,14 @@ int EXPORT_()
 }
 void sighandlerc(int sig)
 {
-	printf(GREEN_ "\n➜  " RESET_);
-	fflush(0);
+	int status;
+	int result = waitpid(0, &status, WNOHANG);
+	if (result == -1)
+	{
+		printf(GREEN_ "\n➜  " RESET_);
+		fflush(0);
+		return;
+	}
 }
 int main()
 {
