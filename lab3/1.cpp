@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+#define buf_size 1024
 struct Pipe
 {
     int fd_send;
@@ -14,30 +15,39 @@ struct Pipe
 
 void *handle_chat(void *data)
 {
-    struct Pipe *pipe = (struct Pipe *)data;
-    char buffer[1024] = "Message:";
+    Pipe *pipe = (Pipe *)data;
+    char buffer[buf_size] = "Message:";
     ssize_t len;
-    while ((len = recv(pipe->fd_send, buffer + 8, 1000, 0)) > 0)
+    while (1)
     {
+        int len = recv(pipe->fd_send, buffer + 8, 1000, 0);
+        if (len <= 0)
+            break;
         send(pipe->fd_recv, buffer, len + 8, 0);
     }
-    return NULL;
+    return 0;
 }
-
 int main(int argc, char **argv)
 {
-    int port = atoi(argv[1]);
-    int fd;
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if (argc != 2)
     {
-        perror("socket");
+        printf("USAGE: %s port", argv[0]);
+        return -1;
+    }
+    int port = atoi(argv[1]);
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0)
+    {
+        perror("ERROR socket");
         return 1;
     }
-    struct sockaddr_in addr;
+
+    sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
     socklen_t addr_len = sizeof(addr);
+
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)))
     {
         perror("bind");
@@ -48,8 +58,8 @@ int main(int argc, char **argv)
         perror("listen");
         return 1;
     }
-    int fd1 = accept(fd, NULL, NULL);
-    int fd2 = accept(fd, NULL, NULL);
+    int fd1 = accept(fd, 0, 0);
+    int fd2 = accept(fd, 0, 0);
     if (fd1 == -1 || fd2 == -1)
     {
         perror("accept");
@@ -62,9 +72,9 @@ int main(int argc, char **argv)
     pipe1.fd_recv = fd2;
     pipe2.fd_send = fd2;
     pipe2.fd_recv = fd1;
-    pthread_create(&thread1, NULL, handle_chat, (void *)&pipe1);
-    pthread_create(&thread2, NULL, handle_chat, (void *)&pipe2);
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+    pthread_create(&thread1, 0, handle_chat, (void *)&pipe1);
+    pthread_create(&thread2, 0, handle_chat, (void *)&pipe2);
+    pthread_join(thread1, 0);
+    pthread_join(thread2, 0);
     return 0;
 }
