@@ -20,9 +20,15 @@ void *handle_chat(void *data)
     ssize_t len;
     while (1)
     {
-        int len = recv(pipe->fd_send, buffer + 8, 1000, 0);
+        int len = recv(pipe->fd_send, buffer + 8, buf_size - 8, 0);
         if (len <= 0)
+        {
             break;
+        }
+        else
+        {
+            buffer[len + 8] = '\0';
+        }
         send(pipe->fd_recv, buffer, len + 8, 0);
     }
     return 0;
@@ -39,7 +45,7 @@ int main(int argc, char **argv)
     if (fd < 0)
     {
         perror("ERROR socket");
-        return 1;
+        return -1;
     }
 
     sockaddr_in addr;
@@ -50,20 +56,20 @@ int main(int argc, char **argv)
 
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)))
     {
-        perror("bind");
-        return 1;
+        perror("ERROR bind");
+        return -1;
     }
     if (listen(fd, 2))
     {
-        perror("listen");
-        return 1;
+        perror("ERROR listen 2");
+        return -1;
     }
     int fd1 = accept(fd, 0, 0);
     int fd2 = accept(fd, 0, 0);
     if (fd1 == -1 || fd2 == -1)
     {
-        perror("accept");
-        return 1;
+        perror("ERROR accept");
+        return -1;
     }
     pthread_t thread1, thread2;
     struct Pipe pipe1;
