@@ -12,25 +12,61 @@ struct Pipe
     int fd_send;
     int fd_recv;
 };
+enum
+{
+    middle = 0,
+    end
+};
 
 void *handle_chat(void *data)
 {
+    int stat = end;
     struct Pipe *pipe = (struct Pipe *)data;
-    char buffer[buf_size] = "Message:";
-    ssize_t len;
+    char buffer[buf_size];
+    int len;
     while (1)
     {
-        int len = recv(pipe->fd_send, buffer + 8, buf_size - 8, 0);
-        if (len <= 0)
+        if (stat == middle)
         {
-            break;
+            len = recv(pipe->fd_send, buffer, buf_size, 0);
+            if (len <= 0)
+            {
+                perror("ERROR recv");
+                exit(-1);
+            }
+            else if (len < buf_size)
+            {
+                buffer[len] = '\n';
+                stat = end;
+            }
+        }
+        else if (stat == end)
+        {
+            strcpy(buffer, "Message:");
+            len = recv(pipe->fd_send, buffer + 8, buf_size - 8, 0);
+            len += 8;
+            if (len - 8 <= 0)
+            {
+                perror("ERROR recv");
+                exit(-1);
+            }
+            else if (len < buf_size)
+            {
+                buffer[len] = '\n';
+            }
+            else
+            {
+                stat = middle;
+            }
         }
         else
         {
-            buffer[len + 8] = '\0';
+            perror("ERROR stat");
+            exit(-1);
         }
-        int sentlen = send(pipe->fd_recv, buffer, len + 8, 0);
-        if (sentlen < len + 8)
+
+        int sentlen = send(pipe->fd_recv, buffer, len, 0);
+        if (sentlen < len)
         {
             perror("ERROR send");
             exit(-1);
