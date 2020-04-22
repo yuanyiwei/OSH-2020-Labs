@@ -7,6 +7,8 @@
 #include <pthread.h>
 
 #define buf_size 1024
+#define client_size 32
+
 struct Pipe
 {
     int fd_send;
@@ -15,7 +17,7 @@ struct Pipe
 
 void *handle_chat(void *data)
 {
-    Pipe *pipe = (Pipe *)data;
+    struct Pipe *pipe = (struct Pipe *)data;
     char buffer[buf_size] = "Message:";
     ssize_t len;
     while (1)
@@ -29,7 +31,12 @@ void *handle_chat(void *data)
         {
             buffer[len + 8] = '\0';
         }
-        send(pipe->fd_recv, buffer, len + 8, 0);
+        int sentlen = send(pipe->fd_recv, buffer, len + 8, 0);
+        if (sentlen < len + 8)
+        {
+            perror("ERROR send");
+            exit(-1);
+        }
     }
     return 0;
 }
@@ -48,7 +55,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    sockaddr_in addr;
+    struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
