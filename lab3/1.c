@@ -17,56 +17,39 @@ enum
     middle = 0,
     end
 };
-
+char message[1048576];
 void *handle_chat(void *data)
 {
     int stat = end;
     struct Pipe *pipe = (struct Pipe *)data;
     char buffer[buf_size];
-    int len;
+    int len, sig;
     while (1)
     {
-        if (stat == middle)
+        sig = 0;
+        len = recv(pipe->fd_send, buffer, buf_size, 0);
+        if (len <= 0)
         {
-            len = recv(pipe->fd_send, buffer, buf_size, 0);
-            if (len <= 0)
-            {
-                perror("ERROR recv");
-                exit(-1);
-            }
-            else if (len < buf_size)
-            {
-                buffer[len] = '\n';
-                stat = end;
-            }
-        }
-        else if (stat == end)
-        {
-            strcpy(buffer, "Message:");
-            len = recv(pipe->fd_send, buffer + 8, buf_size - 8, 0);
-            len += 8;
-            if (len - 8 <= 0)
-            {
-                perror("ERROR recv");
-                exit(-1);
-            }
-            else if (len < buf_size)
-            {
-                buffer[len] = '\n';
-            }
-            else
-            {
-                stat = middle;
-            }
-        }
-        else
-        {
-            perror("ERROR stat");
+            perror("ERROR recv");
             exit(-1);
         }
-
-        int sentlen = send(pipe->fd_recv, buffer, len, 0);
-        if (sentlen < len)
+        if (stat == end)
+        {
+            strcpy(message + sig, "Message:");
+            sig += 8;
+        }
+        for (int i = 0; i < len; i++)
+        {
+            stat = middle;
+            if (buffer[i] == '\n')
+            {
+                stat = end;
+            }
+            strcpy(message + sig, buffer + i);
+            sig++;
+        }
+        int sentlen = send(pipe->fd_recv, message, sig, 0);
+        if (sentlen < sig)
         {
             perror("ERROR send");
             exit(-1);
