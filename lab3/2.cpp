@@ -7,7 +7,7 @@
 #include <pthread.h>
 #define max_client 32
 #define buf_size 1024
-#define send_buff_size 100
+#define rec_buff_size 100
 
 struct Pipe
 {
@@ -16,6 +16,7 @@ struct Pipe
 };
 struct sockinfo
 {
+    int id;
     int sock;
     int port;
 };
@@ -24,6 +25,8 @@ enum
     middle = 0,
     end
 };
+int usernum;
+int user_occupy[max_client];
 char message[1048576];
 struct sockinfo thisinfo, userinfo[max_client - 1];
 int sock_user[max_client - 1];
@@ -36,21 +39,18 @@ void *handleChat(void *data)
     int stat = end;
     int socks = pipe->sock;
     int ports = pipe->port;
-    char receivebuffer[send_buff_size];
+    char receivebuffer[rec_buff_size];
     int length = sizeof(sock_user) / sizeof(sock_user[0]);
     int sig;
-
     while (1)
     {
         sig = 0;
-        memset(receivebuffer, 0, send_buff_size);
-        int len = recv(socks, receivebuffer, send_buff_size, 0);
+        int len = recv(socks, receivebuffer, rec_buff_size, 0);
         pthread_mutex_lock(&mutex);
         if (len <= 0)
         {
             return 0;
         }
-
         memset(message, 0, 1048576);
         if (stat == end)
         {
@@ -69,16 +69,23 @@ void *handleChat(void *data)
         }
         for (int i = 0; i < length; i++)
         {
-            if (sock_user[i] != socks)
+            if (user_occupy[i])
             {
-                send(sock_user[i], message, send_buff_size + 20, 0);
+                if (sock_user[i] != socks)
+                {
+                    send(sock_user[i], message, sig, 0);
+                }
             }
         }
         pthread_mutex_unlock(&mutex);
     }
     return 0;
 }
-
+void leave(int id)
+{
+    user_occupy[id] = 0;
+    usernum--;
+}
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -87,7 +94,8 @@ int main(int argc, char **argv)
         return -1;
     }
     int port = atoi(argv[1]);
-    int usernum = 0;
+    usernum = 0;
+    memset(user_occupy, 0, max_client);
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
         perror("socket");
@@ -119,11 +127,25 @@ int main(int argc, char **argv)
             perror("ERROR accept\n");
             exit(-1);
         }
+        if (usernum >= 32)
+        {
+            continue;
+        }
+        for (int i = 0; i < max_client; i++)
+        {
+            if (!user_occupy[i])
+            {
+                user_occupy[i] = 1;
+                thisinfo.id = i;
+                break;
+            }
+        }
+
         thisinfo.sock = client_sock;
         thisinfo.port = client_addr.sin_port;
-        userinfo[usernum] = thisinfo;
-        sock_user[usernum] = client_sock;
-        pthread_create(&ptid[usernum], 0, handleChat, &userinfo[usernum]);
+        userinfo[thisinfo.id] = thisinfo;
+        sock_user[thisinfo.id] = client_sock;
+        pthread_create(&ptid[thisinfo.id], 0, handleChat, &userinfo[thisinfo.id]);
         usernum++;
     }
     close(fd);
