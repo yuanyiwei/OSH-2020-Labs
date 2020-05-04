@@ -25,14 +25,17 @@ enum
     middle = 0,
     end
 };
-int usernum;
+int usernum, fd;
 int user_occupy[max_client];
 char message[1048576];
-struct sockinfo thisinfo, userinfo[max_client - 1];
-int sock_user[max_client - 1];
-pthread_t ptid[max_client - 1] = {};
+struct sockinfo thisinfo, userinfo[max_client];
+pthread_t ptid[max_client] = {};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int fd;
+void leave(int id)
+{
+    user_occupy[id] = 0;
+    usernum--;
+}
 void *handleChat(void *data)
 {
     struct sockinfo *pipe = (sockinfo *)data;
@@ -40,7 +43,6 @@ void *handleChat(void *data)
     int socks = pipe->sock;
     int ports = pipe->port;
     char receivebuffer[rec_buff_size];
-    int length = sizeof(sock_user) / sizeof(sock_user[0]);
     int sig, sentlen;
     while (1)
     {
@@ -49,6 +51,7 @@ void *handleChat(void *data)
         pthread_mutex_lock(&mutex);
         if (len <= 0)
         {
+            leave(pipe->id);
             return 0;
         }
         memset(message, 0, 1048576);
@@ -67,16 +70,16 @@ void *handleChat(void *data)
             strcpy(message + sig, receivebuffer + i);
             sig++;
         }
-        for (int i = 0; i < length; i++)
+        for (int i = 0; i < max_client; i++)
         {
             if (user_occupy[i])
             {
-                if (sock_user[i] != socks)
+                if (userinfo[i].sock != socks)
                 {
                     sentlen = 0;
                     while (sentlen < sig)
                     {
-                        int remain = send(sock_user[i], message + sentlen, sig - sentlen, 0);
+                        int remain = send(userinfo[i].sock, message + sentlen, sig - sentlen, 0);
                         sentlen += remain;
                         usleep(1000);
                     }
@@ -86,11 +89,6 @@ void *handleChat(void *data)
         pthread_mutex_unlock(&mutex);
     }
     return 0;
-}
-void leave(int id)
-{
-    user_occupy[id] = 0;
-    usernum--;
 }
 int main(int argc, char **argv)
 {
@@ -102,10 +100,11 @@ int main(int argc, char **argv)
     int port = atoi(argv[1]);
     usernum = 0;
     memset(user_occupy, 0, max_client);
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == 0)
     {
-        perror("socket");
-        return 1;
+        perror("ERROR socket");
+        return -1;
     }
     struct sockaddr_in serv_addr, client_addr;
     int len = sizeof(client_addr);
@@ -119,7 +118,7 @@ int main(int argc, char **argv)
         perror("ERROR bind\n");
         return -1;
     }
-    if (listen(fd, 32))
+    if (listen(fd, max_client))
     {
         perror("ERROR listen\n");
         return -1;
@@ -150,7 +149,6 @@ int main(int argc, char **argv)
         thisinfo.sock = client_sock;
         thisinfo.port = client_addr.sin_port;
         userinfo[thisinfo.id] = thisinfo;
-        sock_user[thisinfo.id] = client_sock;
         pthread_create(&ptid[thisinfo.id], 0, handleChat, &userinfo[thisinfo.id]);
         usernum++;
     }

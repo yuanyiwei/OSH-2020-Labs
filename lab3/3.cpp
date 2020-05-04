@@ -7,21 +7,41 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-
+#define max_client 32
+#define buf_size 1024
 struct Pipe
 {
     int fd_send;
     int fd_recv;
 };
-
+struct sockinfo
+{
+    int id;
+    int sock;
+    int port;
+};
+enum
+{
+    middle = 0,
+    end
+};
+int usernum, fd;
+int user_occupy[max_client];
+char message[1048576];
+struct sockinfo thisinfo, userinfo[max_client];
 int main(int argc, char **argv)
 {
-    int port = atoi(argv[1]);
-    int fd;
-    if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if (argc != 2)
     {
-        perror("socket");
-        return 1;
+        printf("USAGE: %s port", argv[0]);
+        return -1;
+    }
+    int port = atoi(argv[1]);
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == 0)
+    {
+        perror("ERROR socket");
+        return -1;
     }
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
@@ -30,14 +50,15 @@ int main(int argc, char **argv)
     socklen_t addr_len = sizeof(addr);
     if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)))
     {
-        perror("bind");
-        return 1;
+        perror("ERROR bind\n");
+        return -1;
     }
-    if (listen(fd, 2))
+    if (listen(fd, max_client))
     {
-        perror("listen");
-        return 1;
+        perror("ERROR listen\n");
+        return -1;
     }
+    /*
     int fd1 = accept(fd, NULL, NULL);
     int fd2 = accept(fd, NULL, NULL);
     if (fd1 == -1 || fd2 == -1)
@@ -46,6 +67,7 @@ int main(int argc, char **argv)
         return 1;
     }
     fd_set clients;
+    
     char buffer[1024] = "Message:";
     fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK); // 将客户端的套接字设置成非阻塞
     fcntl(fd2, F_SETFL, fcntl(fd2, F_GETFL, 0) | O_NONBLOCK);
@@ -79,6 +101,6 @@ int main(int argc, char **argv)
         {
             break;
         }
-    }
+    }*/
     return 0;
 }
