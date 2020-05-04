@@ -23,7 +23,7 @@ void *handle_chat(void *data)
     int stat = end;
     struct Pipe *pipe = (struct Pipe *)data;
     char buffer[buf_size];
-    int len, sig;
+    int len, sig, sentlen;
     while (1)
     {
         sig = 0;
@@ -48,11 +48,12 @@ void *handle_chat(void *data)
             strcpy(message + sig, buffer + i);
             sig++;
         }
-        int sentlen = send(pipe->fd_recv, message, sig, 0);
-        if (sentlen < sig)
+        sentlen = 0;
+        while (sentlen < sig)
         {
-            perror("ERROR send");
-            exit(-1);
+            int remain = send(pipe->fd_recv, message + sentlen, sig - sentlen, 0);
+            sentlen += remain;
+            usleep(1000);
         }
     }
     return 0;

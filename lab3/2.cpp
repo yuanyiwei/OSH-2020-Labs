@@ -41,7 +41,7 @@ void *handleChat(void *data)
     int ports = pipe->port;
     char receivebuffer[rec_buff_size];
     int length = sizeof(sock_user) / sizeof(sock_user[0]);
-    int sig;
+    int sig, sentlen;
     while (1)
     {
         sig = 0;
@@ -73,7 +73,13 @@ void *handleChat(void *data)
             {
                 if (sock_user[i] != socks)
                 {
-                    send(sock_user[i], message, sig, 0);
+                    sentlen = 0;
+                    while (sentlen < sig)
+                    {
+                        int remain = send(sock_user[i], message + sentlen, sig - sentlen, 0);
+                        sentlen += remain;
+                        usleep(1000);
+                    }
                 }
             }
         }
