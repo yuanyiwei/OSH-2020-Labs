@@ -50,11 +50,15 @@ int handle_chat_recv(int i)
 					recvlen++;
 				}
 				struct messageSent recvMsg;
+				char *sendmsg = (char *)malloc(max_buffer * sizeof(char));
+				memcpy(sendmsg, message, max_buffer * sizeof(char));
 				recvMsg.id = i;
-				recvMsg.msg = message;
+				recvMsg.msg = sendmsg;
 				recvMsg.len = recvlen;
-				printf("user %d msg %s\n", i, message);
+
+				printf("user %d send msg %s\n", i, sendmsg);
 				fflush(0);
+
 				for (int socks = 0; socks < max_client; socks++)
 				{
 					if (user_occupy[socks])
@@ -88,7 +92,12 @@ int handle_chat_send(int i)
 	{
 		message[headerlen + i] = dealmsg.msg[i];
 	}
-	int sig = headerlen + dealmsg.len;
+	message[headerlen + dealmsg.len] = '\n';
+
+	printf("user %d recv msg %s", i, message);
+	fflush(0);
+
+	int sig = headerlen + dealmsg.len + 1;
 	int send_len = send(userinfo[i].sock, message, sig, 0);
 	while (send_len < sig)
 	{
