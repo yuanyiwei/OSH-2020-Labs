@@ -29,11 +29,11 @@ int user_occupy[max_client];
 int privmsg_pos[max_client];
 char message[max_buffer];
 char bufferl[max_buffer];
-char clientMessage[max_client][max_buffer];
 struct sockinfo userinfo[max_client];
 queue<messageSent> clientQueue[max_client];
 int handle_chat_recv(int i)
 {
+	memset(message, 0, max_buffer);
 	int len;
 	while ((len = recv(userinfo[i].sock, message + privmsg_pos[i], max_buffer - privmsg_pos[i], 0)) > 0)
 	{
@@ -50,7 +50,7 @@ int handle_chat_recv(int i)
 					recvmsg[recvlen] = message[j];
 					recvlen++;
 				}
-				messageSent recvMsg;
+				struct messageSent recvMsg;
 				recvMsg.id = i;
 				recvMsg.msg = recvmsg;
 				recvMsg.len = recvlen;
@@ -75,18 +75,22 @@ int handle_chat_recv(int i)
 		memcpy(bufferl, message + pos, privmsg_pos[i]);
 		memcpy(message, bufferl, privmsg_pos[i]);
 	}
+
+	/*
 	if (len <= 0)
 	{
 		user_occupy[i] = 0;
 	}
+	*/
+	return 0;
 }
 int handle_chat_send(int i)
 {
-
 	char header[buf_size];
 	int headerlen = sprintf(header, "User %d: ", clientQueue[i].front().id);
+	memset(message, 0, max_buffer);
 	memcpy(message, header, headerlen);
-	messageSent dealmsg = clientQueue[i].front();
+	struct messageSent dealmsg = clientQueue[i].front();
 	for (int i = 0; i < dealmsg.len; i++)
 	{
 		message[headerlen + i] = dealmsg.msg[i];
@@ -98,8 +102,6 @@ int handle_chat_send(int i)
 	}
 	else
 	{
-		char new_msg[buf_size];
-		int new_msg_len = 0;
 		int start_pos;
 		if (send_len < headerlen)
 		{
@@ -112,6 +114,7 @@ int handle_chat_send(int i)
 		clientQueue[i].front().msg = dealmsg.msg + start_pos;
 		clientQueue[i].front().len = dealmsg.len - start_pos;
 	}
+	return 0;
 }
 int main(int argc, char **argv)
 {
@@ -150,6 +153,7 @@ int main(int argc, char **argv)
 	{
 		FD_ZERO(&recvclient);
 		FD_ZERO(&sendclient);
+		FD_SET(fd, &recvclient);
 		for (int i = 0; i < max_client; i++)
 		{
 			if (user_occupy[i])
@@ -161,7 +165,6 @@ int main(int argc, char **argv)
 				}
 			}
 		}
-		FD_SET(fd, &recvclient);
 		if (select(sup_fd, &recvclient, &sendclient, NULL, NULL) > 0)
 		{
 			if (FD_ISSET(fd, &recvclient))
@@ -185,25 +188,27 @@ int main(int argc, char **argv)
 				{
 					perror("ERROR usernum\n");
 					close(newfd);
-					continue;
 				}
-				userinfo[thisid].sock = newfd;
-				userinfo[thisid].id = thisid;
-				if (userinfo[thisid].sock > sup_fd)
+				else
 				{
-					sup_fd = userinfo[thisid].sock + 1;
+					userinfo[thisid].sock = newfd;
+					userinfo[thisid].id = thisid;
+					if (userinfo[thisid].sock > sup_fd)
+					{
+						sup_fd = userinfo[thisid].sock + 1;
+					}
+					user_occupy[thisid] = 1;
+					privmsg_pos[thisid] = 0;
+					fcntl(userinfo[thisid].sock, F_SETFL, fcntl(userinfo[thisid].sock, F_GETFL, 0) | O_NONBLOCK);
+					char msgwelcome[buf_size];
+					struct messageSent welcome;
+					sprintf(msgwelcome, "Welcome! You are user%d.\n", thisid);
+					welcome.id = 233;
+					welcome.msg = msgwelcome;
+					welcome.len = strlen(msgwelcome);
+					clientQueue[thisid].push(welcome);
+					FD_SET(userinfo[thisid].sock, &sendclient);
 				}
-				user_occupy[thisid] = 1;
-				privmsg_pos[thisid] = 0;
-				fcntl(userinfo[thisid].sock, F_SETFL, fcntl(userinfo[thisid].sock, F_GETFL, 0) | O_NONBLOCK);
-				char msgwelcome[buf_size];
-				messageSent welcome;
-				sprintf(msgwelcome, "Welcome! You are user%d.\n", thisid);
-				welcome.id = 233;
-				welcome.msg = msgwelcome;
-				welcome.len = strlen(msgwelcome);
-				clientQueue[thisid].push(welcome);
-				continue;
 			}
 			for (int i = 0; i < max_client; i++)
 			{

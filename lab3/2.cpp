@@ -31,11 +31,7 @@ char message[1048576];
 struct sockinfo thisinfo, userinfo[max_client];
 pthread_t ptid[max_client] = {};
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-void leave(int id)
-{
-    user_occupy[id] = 0;
-    usernum--;
-}
+
 void *handleChat(void *data)
 {
     struct sockinfo *pipe = (sockinfo *)data;
@@ -51,7 +47,8 @@ void *handleChat(void *data)
         pthread_mutex_lock(&mutex);
         if (len <= 0)
         {
-            leave(pipe->id);
+            user_occupy[pipe->id] = 0;
+            usernum--;
             return 0;
         }
         memset(message, 0, 1048576);
