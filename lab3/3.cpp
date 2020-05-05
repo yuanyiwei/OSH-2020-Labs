@@ -28,26 +28,27 @@ int fd, sup_fd;
 int user_occupy[max_client];
 int privmsg_pos[max_client];
 char message[max_buffer];
-char bufferl[max_buffer];
+char tmpbuf[max_buffer];
+char privbuf[max_client][max_buffer];
 struct sockinfo userinfo[max_client];
 queue<messageSent> clientQueue[max_client];
 int handle_chat_recv(int i)
 {
-	memset(message, 0, max_buffer);
+	memset(privbuf[i], 0, max_buffer);
 	int len;
-	while ((len = recv(userinfo[i].sock, message + privmsg_pos[i], max_buffer - privmsg_pos[i], 0)) > 0)
+	while ((len = recv(userinfo[i].sock, privbuf[i] + privmsg_pos[i], max_buffer - privmsg_pos[i], 0)) > 0)
 	{
 		int pos = 0, sig = 0;
 		while (sig < len + privmsg_pos[i])
 		{
 			sig++;
-			if (message[sig] == '\n')
+			if (privbuf[i][sig] == '\n')
 			{
 				char recvmsg[buf_size];
 				int recvlen = 0;
 				for (int j = pos; j <= sig; j++)
 				{
-					recvmsg[recvlen] = message[j];
+					recvmsg[recvlen] = privbuf[i][j];
 					recvlen++;
 				}
 				struct messageSent recvMsg;
@@ -72,10 +73,9 @@ int handle_chat_recv(int i)
 		{
 			break;
 		}
-		memcpy(bufferl, message + pos, privmsg_pos[i]);
-		memcpy(message, bufferl, privmsg_pos[i]);
+		memcpy(tmpbuf, privbuf[i] + pos, privmsg_pos[i]);
+		memcpy(privbuf[i], tmpbuf, privmsg_pos[i]);
 	}
-
 	/*
 	if (len <= 0)
 	{
