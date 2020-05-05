@@ -21,7 +21,7 @@ struct sockinfo
 struct messageSent
 {
 	char *msg;
-	long len;
+	int len;
 	int id;
 };
 int fd, sup_fd;
@@ -34,27 +34,27 @@ struct sockinfo userinfo[max_client];
 queue<messageSent> clientQueue[max_client];
 int handle_chat_recv(int i)
 {
-	memset(privbuf[i], 0, max_buffer);
+	memset(message, 0, max_buffer);
 	int len;
 	while ((len = recv(userinfo[i].sock, privbuf[i] + privmsg_pos[i], max_buffer - privmsg_pos[i], 0)) > 0)
 	{
 		int pos = 0, sig = 0;
 		while (sig < len + privmsg_pos[i])
 		{
-			sig++;
 			if (privbuf[i][sig] == '\n')
 			{
-				char recvmsg[buf_size];
 				int recvlen = 0;
-				for (int j = pos; j <= sig; j++)
+				for (int j = pos; j < sig; j++)
 				{
-					recvmsg[recvlen] = privbuf[i][j];
+					message[recvlen] = privbuf[i][j];
 					recvlen++;
 				}
 				struct messageSent recvMsg;
 				recvMsg.id = i;
-				recvMsg.msg = recvmsg;
+				recvMsg.msg = message;
 				recvMsg.len = recvlen;
+				printf("user %d msg %s\n", i, message);
+				fflush(0);
 				for (int socks = 0; socks < max_client; socks++)
 				{
 					if (user_occupy[socks])
@@ -65,8 +65,9 @@ int handle_chat_recv(int i)
 						}
 					}
 				}
-				pos = sig;
+				pos = sig + 1;
 			}
+			sig++;
 		}
 		privmsg_pos[i] = len - pos + privmsg_pos[i];
 		if (privmsg_pos[i] == 0)
@@ -76,44 +77,26 @@ int handle_chat_recv(int i)
 		memcpy(tmpbuf, privbuf[i] + pos, privmsg_pos[i]);
 		memcpy(privbuf[i], tmpbuf, privmsg_pos[i]);
 	}
-	/*
-	if (len <= 0)
-	{
-		user_occupy[i] = 0;
-	}
-	*/
 	return 0;
 }
 int handle_chat_send(int i)
 {
-	char header[buf_size];
-	int headerlen = sprintf(header, "User %d: ", clientQueue[i].front().id);
 	memset(message, 0, max_buffer);
-	memcpy(message, header, headerlen);
+	int headerlen = sprintf(message, "User %d: ", clientQueue[i].front().id);
 	struct messageSent dealmsg = clientQueue[i].front();
 	for (int i = 0; i < dealmsg.len; i++)
 	{
 		message[headerlen + i] = dealmsg.msg[i];
 	}
-	int send_len = send(userinfo[i].sock, message, headerlen + dealmsg.len, 0);
-	if (send_len == headerlen + dealmsg.len)
+	int sig = headerlen + dealmsg.len;
+	int send_len = send(userinfo[i].sock, message, sig, 0);
+	while (send_len < sig)
 	{
-		clientQueue[i].pop();
+		int remain = send(userinfo[i].sock, message + send_len, sig - send_len, 0);
+		send_len += remain;
+		usleep(1000);
 	}
-	else
-	{
-		int start_pos;
-		if (send_len < headerlen)
-		{
-			start_pos = 0;
-		}
-		else
-		{
-			start_pos = send_len - headerlen;
-		}
-		clientQueue[i].front().msg = dealmsg.msg + start_pos;
-		clientQueue[i].front().len = dealmsg.len - start_pos;
-	}
+	clientQueue[i].pop();
 	return 0;
 }
 int main(int argc, char **argv)
@@ -125,6 +108,7 @@ int main(int argc, char **argv)
 	}
 	int port = atoi(argv[1]);
 	memset(user_occupy, 0, max_client);
+	memset(privbuf, 0, max_client * max_buffer);
 	fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd == 0)
 	{
