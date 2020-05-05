@@ -67,7 +67,7 @@ void *handleChat(void *data)
             {
                 stat = end;
             }
-            strcpy(message + sig, receivebuffer + i);
+            message[sig] = receivebuffer[i];
             sig++;
         }
         for (int i = 0; i < max_client; i++)
@@ -130,9 +130,8 @@ int main(int argc, char **argv)
         if (client_sock < 0)
         {
             perror("ERROR accept\n");
-            exit(-1);
         }
-        if (usernum >= 32)
+        if (usernum >= max_client)
         {
             continue;
         }

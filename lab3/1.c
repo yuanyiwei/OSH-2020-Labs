@@ -45,7 +45,7 @@ void *handle_chat(void *data)
             {
                 stat = end;
             }
-            strcpy(message + sig, buffer + i);
+            message[sig] = buffer[i];
             sig++;
         }
         sentlen = 0;
