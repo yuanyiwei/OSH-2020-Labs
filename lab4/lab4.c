@@ -1,17 +1,19 @@
 #define _GNU_SOURCE // Required for enabling clone(2)
 #include <stdio.h>
 #include <unistd.h>
-#include <sched.h>               // For clone(2)
-#include <signal.h>              // For SIGCHLD constant
-#include <sys/mman.h>            // For mmap(2)
-#include <sys/types.h>           // For wait(2)
-#include <sys/wait.h>            // For wait(2)
+#include <stdlib.h>
+#include <sched.h>     // For clone(2)
+#include <signal.h>    // For SIGCHLD constant
+#include <sys/mman.h>  // For mmap(2)
+#include <sys/types.h> // For wait(2)
+#include <sys/wait.h>  // For wait(2)
+#include <sys/mount.h>
+#include <sys/syscall.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #define STACK_SIZE (1024 * 1024) // 1 MiB
 
-const char *usage =
-    "Usage: %s <directory> <command> [args...]\n"
-    "\n"
-    "  Run <directory> as a container and execute <command>.\n";
+const char *usage = "Usage: %s <directory> <command> [args...]\n\nRun <directory> as a container and execute <command>.\n";
 
 void error_exit(int code, const char *message)
 {
@@ -20,6 +22,33 @@ void error_exit(int code, const char *message)
 }
 int child(void *arg)
 {
+    if (mount(0, "/", 0, MS_PRIVATE | MS_REC, 0) == -1)
+    {
+        error_exit(3, "error mount rootfs\n");
+    }
+
+    if (mount("tdev", "/dev", "tmpfs", 0, 0) == -1)
+    {
+        error_exit(3, "error mount dev\n");
+    }
+    if (mount("tproc", "/proc", "proc", 0, 0) == -1)
+    {
+        error_exit(3, "error mount proc\n");
+    }
+    if (mount("tsys", "/sys", "sysfs", 0, 0) == -1)
+    {
+        error_exit(3, "error mount sys\n");
+    }
+    if (mount("ttmpfs", "/tmp", "tmpfs", 0, 0) == -1)
+    {
+        error_exit(3, "error mount tmpfs\n");
+    }
+    //cg & dev
+
+    if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY, 0) == -1)
+    {
+        error_exit(3, "error mount readonly sys\n");
+    }
     execvp(argv[2], arg); //?
 }
 
