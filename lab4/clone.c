@@ -1,5 +1,6 @@
 #define _GNU_SOURCE // Required for enabling clone(2)
 #include <stdio.h>
+#include <unistd.h>
 #include <sched.h>               // For clone(2)
 #include <signal.h>              // For SIGCHLD constant
 #include <sys/mman.h>            // For mmap(2)
