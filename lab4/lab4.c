@@ -31,31 +31,53 @@ int child(void *arg)
 {
     char tmpdir[50] = "/tmp/xyy-XXXXXX";
     char oldrootdir[50];
+    char oldrootdirinc[50];
     mkdtemp(tmpdir);
     sprintf(oldrootdir, "%s/oldroot", tmpdir);
     // fprintf(stderr, "%s", oldrootdir);
     if (mount(0, "/", 0, MS_PRIVATE | MS_REC, 0) == -1)
         error_exit(errorpivotroot, "error mount rootfs\n");
+    //cg & dev
     if (mount(".", tmpdir, "devtmpfs", MS_BIND, 0) == -1)
         error_exit(errorpivotroot, "error bind mount\n");
-    mkdir(oldrootdir, DEFFILEMODE);
+    mkdir(oldrootdir, 0777);
     if (syscall(SYS_pivot_root, tmpdir, oldrootdir) == -1)
         error_exit(errorpivotroot, "error pivot_root\n");
     if (chdir("/") == -1)
         error_exit(errorpivotroot, "error /\n");
+    if (umount2("/oldroot", MNT_DETACH))
+        error_exit(errorpivotroot, "error umount oldroot\n");
+    rmdir("/oldroot");
+    sprintf(oldrootdirinc, "/oldroot%s", tmpdir);
+    rmdir(oldrootdirinc);
 
-    if (mount("tdev", "/dev", "tmpfs", 0, 0) == -1)
+    if (mount("tdev", "/dev", "devtmpfs", MS_NOEXEC | MS_NOSUID, 0) == -1)
         error_exit(errormountfs, "error mount dev\n");
-    if (mount("tproc", "/proc", "proc", 0, 0) == -1)
+    if (mount("tproc", "/proc", "proc", MS_NOEXEC | MS_NOSUID, 0) == -1)
         error_exit(errormountfs, "error mount proc\n");
-    if (mount("tsys", "/sys", "sysfs", 0, 0) == -1)
+    if (mount("tsys", "/sys", "sysfs", MS_NOEXEC | MS_NOSUID, 0) == -1)
         error_exit(errormountfs, "error mount sys\n");
-    if (mount("ttmpfs", "/tmp", "tmpfs", 0, 0) == -1)
+    if (mount("ttmpfs", "/tmp", "tmpfs", MS_NOEXEC | MS_NOSUID, 0) == -1)
         error_exit(errormountfs, "error mount tmpfs\n");
-    //cg & dev
 
-    if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY, 0) == -1)
+    if (mount("tmpfs", "/sys/fs/cgroup", "tmpfs", MS_NOEXEC | MS_NOSUID, NULL) == -1)
+        error_exit(errorcgroup, "error mount cg\n");
+    if (mkdir("/sys/fs/cgroup/memory", 0777) == -1)
+        error_exit(errorcgroup, "error mkdir cg\n");
+    if (mkdir("/sys/fs/cgroup/cpu,cpuacct", 0777) == -1)
+        error_exit(errorcgroup, "error mkdir cg\n");
+    if (mkdir("/sys/fs/cgroup/pids", 0777) == -1)
+        error_exit(errorcgroup, "error mkdir cg\n");
+    if (mount("cgroup", "/sys/fs/cgroup/pids", "cgroup", MS_NOEXEC | MS_NOSUID, "pids") == -1)
+        error_exit(errorcgroup, "error mkdri cg\n");
+    if (mount("cgroup", "/sys/fs/cgroup/memory", "cgroup", MS_NOEXEC | MS_NOSUID, "memory") == -1)
+        error_exit(errorcgroup, "error mkdir cg\n");
+    if (mount("cgroup", "/sys/fs/cgroup/cpu,cpuacct", "cgroup", MS_NOEXEC | MS_NOSUID, "cpu,cpuacct") == -1)
+        error_exit(errorcgroup, "error mkdir cg\n");
+
+    if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY | MS_NOEXEC | MS_NOSUID, 0) == -1) // ?
         error_exit(errormountfs, "error mount readonly sys\n");
+
     execvp(arg, (char *const *)arg);
 
     error_exit(255, "exec");
