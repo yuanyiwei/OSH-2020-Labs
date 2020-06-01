@@ -12,7 +12,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #define STACK_SIZE (1024 * 1024) // 1 MiB
-
+enum
+{
+    errorpivotroot = 1,
+    errormountfs,
+    errorcapabilities,
+    errorseccomp,
+    errorcgroup
+};
 const char *usage = "Usage: %s <directory> <command> [args...]\n\nRun <directory> as a container and execute <command>.\n";
 
 void error_exit(int code, const char *message)
@@ -22,34 +29,35 @@ void error_exit(int code, const char *message)
 }
 int child(void *arg)
 {
+    char tmpdir[50] = "/tmp/xyy-XXXXXX";
+    char oldrootdir[50];
+    mkdtemp(tmpdir);
+    sprintf(oldrootdir, "%s/oldroot", tmpdir);
+    // fprintf(stderr, "%s", oldrootdir);
     if (mount(0, "/", 0, MS_PRIVATE | MS_REC, 0) == -1)
-    {
-        error_exit(3, "error mount rootfs\n");
-    }
+        error_exit(errorpivotroot, "error mount rootfs\n");
+    if (mount(".", tmpdir, "devtmpfs", MS_BIND, 0) == -1)
+        error_exit(errorpivotroot, "error bind mount\n");
+    if (syscall(SYS_pivot_root, tmpdir, oldrootdir) == -1)
+        error_exit(errorpivotroot, "error pivot_root\n");
+    if (chdir("/") == -1)
+        error_exit(errorpivotroot, "error /\n");
 
     if (mount("tdev", "/dev", "tmpfs", 0, 0) == -1)
-    {
-        error_exit(3, "error mount dev\n");
-    }
+        error_exit(errormountfs, "error mount dev\n");
     if (mount("tproc", "/proc", "proc", 0, 0) == -1)
-    {
-        error_exit(3, "error mount proc\n");
-    }
+        error_exit(errormountfs, "error mount proc\n");
     if (mount("tsys", "/sys", "sysfs", 0, 0) == -1)
-    {
-        error_exit(3, "error mount sys\n");
-    }
+        error_exit(errormountfs, "error mount sys\n");
     if (mount("ttmpfs", "/tmp", "tmpfs", 0, 0) == -1)
-    {
-        error_exit(3, "error mount tmpfs\n");
-    }
+        error_exit(errormountfs, "error mount tmpfs\n");
     //cg & dev
 
     if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY, 0) == -1)
-    {
-        error_exit(3, "error mount readonly sys\n");
-    }
-    execvp(argv[2], arg); //?
+        error_exit(errormountfs, "error mount readonly sys\n");
+    execvp(arg, (char *const *)arg);
+
+    error_exit(255, "exec");
 }
 
 int main(int argc, char **argv)
