@@ -38,6 +38,7 @@ int child(void *arg)
         error_exit(errorpivotroot, "error mount rootfs\n");
     if (mount(".", tmpdir, "devtmpfs", MS_BIND, 0) == -1)
         error_exit(errorpivotroot, "error bind mount\n");
+    mkdir(oldrootdir, DEFFILEMODE);
     if (syscall(SYS_pivot_root, tmpdir, oldrootdir) == -1)
         error_exit(errorpivotroot, "error pivot_root\n");
     if (chdir("/") == -1)
@@ -67,6 +68,7 @@ int main(int argc, char **argv)
         fprintf(stderr, usage, argv[0]);
         return 1;
     }
+    // fprintf(stderr, "%s, %s, %s\n", argv[0], argv[1], argv[2]);
     if (chdir(argv[1]) == -1)
         error_exit(1, argv[1]);
 
