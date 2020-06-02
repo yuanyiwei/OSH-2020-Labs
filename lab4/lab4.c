@@ -12,6 +12,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/sysmacros.h>
+#include <cap-ng.h>
+#include <seccomp.h>
 #define STACK_SIZE (1024 * 1024)
 enum
 {
@@ -84,6 +86,14 @@ int child(void *arg)
 	if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY | MS_NOEXEC | MS_NOSUID, 0) == -1)
 		error_exit(errormountfs, "error mount readonly sys\n");
 
+	capng_clear(CAPNG_SELECT_BOTH);
+	if (capng_updatev(CAPNG_ADD,
+					  CAPNG_EFFECTIVE | CAPNG_PERMITTED,
+					  CAP_SETPCAP, CAP_MKNOD, CAP_AUDIT_WRITE, CAP_CHOWN, CAP_NET_RAW, CAP_DAC_OVERRIDE, CAP_FOWNER, CAP_FSETID, CAP_KILL, CAP_SETGID, CAP_SETUID, CAP_NET_BIND_SERVICE, CAP_SYS_CHROOT, CAP_SETFCAP, -1) == -1)
+		error_exit(errorcapabilities, "error capng update\n");
+	if (capng_apply(CAPNG_SELECT_BOTH) == -1)
+		error_exit(errorcapabilities, "error capng apply\n");
+
 	execvp(((char **)arg)[0], (char *const *)arg);
 	error_exit(255, "exec");
 }
@@ -104,7 +114,7 @@ int main(int argc, char **argv)
 							 MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, //私有 不以任何文件为基础 线程堆栈
 							 -1, 0);								  //-1是因为 MAP_ANONYMOUS 否则应为文件句柄
 	void *child_stack_start = child_stack + STACK_SIZE;				  //起始指针倒着增长
-
+	int status, ecode = 0;
 	int pid = getpid();
 	mkdir("/sys/fs/cgroup/memory/test", DEFFILEMODE);
 	mkdir("/sys/fs/cgroup/cpu,cpuacct/test", DEFFILEMODE);
@@ -135,10 +145,14 @@ int main(int argc, char **argv)
 	fclose(fp);
 
 	int ch = clone(child, child_stack_start, CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWCGROUP | SIGCHLD, argv + 2); //child：子进程的main函数  child_stack_start子进程起始地址 SIGCHLD(wait) name进程参数
+	if (ch != -1)
+	{
+		wait(&status);
+		printf("Child exited with status %d\n", WEXITSTATUS(status));
+	}
+	else
+		perror("error clone\n");
 
-	int status, ecode = 0;
-	wait(&status);
-	printf("Child exited with status %d\n", WEXITSTATUS(status));
 	rmdir("/sys/fs/cgroup/memory/test");
 	rmdir("/sys/fs/cgroup/cpu,cpuacct/test");
 	rmdir("/sys/fs/cgroup/pids/test");
