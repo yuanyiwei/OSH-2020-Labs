@@ -37,6 +37,7 @@ int child(void *arg)
 	if (mount(0, "/", 0, MS_PRIVATE | MS_REC, 0) == -1)
 		error_exit(errorpivotroot, "error mount rootfs\n");
 	//cg & dev
+
 	if (mount(".", tmpdir, "devtmpfs", MS_BIND, 0) == -1)
 		error_exit(errorpivotroot, "error bind mount\n");
 	mkdir(oldrootdir, 0777);
@@ -61,20 +62,25 @@ int child(void *arg)
 
 	if (mount("tmpfs", "/sys/fs/cgroup", "tmpfs", MS_NOEXEC | MS_NOSUID, NULL) == -1)
 		error_exit(errorcgroup, "error mount cg\n");
-	if (mkdir("/sys/fs/cgroup/memory", 0777) == -1)
+	if (mkdir("/sys/fs/cgroup/memory", 0755) == -1)
 		error_exit(errorcgroup, "error mkdir cg\n");
 	if (mkdir("/sys/fs/cgroup/cpu,cpuacct", 0777) == -1)
 		error_exit(errorcgroup, "error mkdir cg\n");
-	if (mkdir("/sys/fs/cgroup/pids", 0777) == -1)
+	if (mkdir("/sys/fs/cgroup/pids", 0755) == -1)
 		error_exit(errorcgroup, "error mkdir cg\n");
+
 	if (mount("cgroup", "/sys/fs/cgroup/pids", "cgroup", MS_NOEXEC | MS_NOSUID, "pids") == -1)
 		error_exit(errorcgroup, "error mkdir cg\n");
 	if (mount("cgroup", "/sys/fs/cgroup/memory", "cgroup", MS_NOEXEC | MS_NOSUID, "memory") == -1)
 		error_exit(errorcgroup, "error mkdir cg\n");
 	if (mount("cgroup", "/sys/fs/cgroup/cpu,cpuacct", "cgroup", MS_NOEXEC | MS_NOSUID, "cpu,cpuacct") == -1)
 		error_exit(errorcgroup, "error mkdir cg\n");
+	mknod("/dev/null", 666 | S_IFCHR, makedev(1, 3));
+	mknod("/dev/tty", 666 | S_IFCHR, makedev(5, 0));
+	mknod("/dev/urandom", 666 | S_IFCHR, makedev(1, 9));
+	mknod("/dev/zero", 666 | S_IFCHR, makedev(1, 5));
 
-	if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY | MS_NOEXEC | MS_NOSUID, 0) == -1) // ?
+	if (mount("tsys", "/sys", "sysfs", MS_REMOUNT | MS_RDONLY | MS_NOEXEC | MS_NOSUID, 0) == -1)
 		error_exit(errormountfs, "error mount readonly sys\n");
 
 	execvp(((char **)arg)[0], (char *const *)arg);
