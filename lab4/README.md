@@ -1,0 +1,71 @@
+# Lab4
+
+PB18000221 袁一玮
+
+## 隔离命名空间
+
+```cpp
+int ch = clone(child, child_stack_start, CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWCGROUP | SIGCHLD, argv + 2);
+```
+
+把几个命名空间 flag 加入即可。
+
+## 挂载文件系统
+
+先把根挂载为私有：
+
+```cpp
+if (mount(0, "/", 0, MS_PRIVATE | MS_REC, 0) == -1)
+    error_exit(errorpivotroot, "error mount rootfs\n");
+```
+
+之后 bind mount，并 lazy unmount 了旧根。
+
+挂载 `/proc`, `/sys`, `/tmp`, `/dev`，并在 `/dev` 下创建必要的节点（还挂载 `cgroup` 并在其目录下创建挂载三个控制组）：
+
+```cpp
+if (mount("tdev", "/dev", "devtmpfs", MS_NOEXEC | MS_NOSUID, 0) == -1)
+    error_exit(errormountfs, "error mount dev\n");
+if (mount("tproc", "/proc", "proc", MS_NOEXEC | MS_NOSUID, 0) == -1)
+    error_exit(errormountfs, "error mount proc\n");
+if (mount("tsys", "/sys", "sysfs", MS_NOEXEC | MS_NOSUID, 0) == -1)
+    error_exit(errormountfs, "error mount sys\n");
+if (mount("ttmpfs", "/tmp", "tmpfs", MS_NOEXEC | MS_NOSUID, 0) == -1)
+    error_exit(errormountfs, "error mount tmpfs\n");
+
+mknod("/dev/null", 666 | S_IFCHR, makedev(1, 3));
+mknod("/dev/tty", 666 | S_IFCHR, makedev(5, 0));
+mknod("/dev/urandom", 666 | S_IFCHR, makedev(1, 9));
+mknod("/dev/zero", 666 | S_IFCHR, makedev(1, 5));
+```
+
+## 使用 pivot_root 并从主机上隐藏容器的挂载点
+
+过程出现在挂载的中间，先把根放到临时目录 tmpdir 下，尝试 cd 移动目录。之后使用 umount2 将旧根惰性卸载，不影响正在使用该文件系统结构的进程，再使用 `rmdir("/oldroot")` 即可。
+
+```cpp
+if (mount(".", tmpdir, "devtmpfs", MS_BIND, 0) == -1)
+    error_exit(errorpivotroot, "error bind mount\n");
+mkdir(oldrootdir, 0777);
+if (syscall(SYS_pivot_root, tmpdir, oldrootdir) == -1)
+    error_exit(errorpivotroot, "error pivot_root\n");
+if (chdir("/") == -1)
+    error_exit(errorpivotroot, "error /\n");
+if (umount2("/oldroot", MNT_DETACH))
+    error_exit(errorpivotroot, "error umount oldroot\n");
+rmdir("/oldroot");
+sprintf(oldrootdirinc, "/oldroot%s", tmpdir);
+rmdir(oldrootdirinc);
+```
+
+## 为容器中的进程移除能力
+
+## 限制容器的系统调用
+
+## 使用 cgroup 限制容器中的系统资源使用并在容器中挂载三个 cgroup 控制器
+
+# 思考题
+
+## 用于限制进程能够进行的系统调用的 seccomp 模块实际使用的系统调用是哪个？用于控制进程能力的 capabilities 实际使用的系统调用是哪个？尝试说明为什么本文最上面认为「该系统调用非常复杂」。
+
+## 当你用 cgroup 限制了容器中的 CPU 与内存等资源后，容器中的所有进程都不能够超额使用资源，但是诸如 htop 等「任务管理器」类的工具仍然会显示主机上的全部 CPU 和内存（尽管无法使用）。查找资料，说明原因，尝试提出一种解决方案，使任务管理器一类的程序能够正确显示被限制后的可用 CPU 和内存（不要求实现）。
