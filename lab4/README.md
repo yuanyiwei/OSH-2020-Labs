@@ -64,6 +64,48 @@ rmdir(oldrootdirinc);
 
 ## 使用 cgroup 限制容器中的系统资源使用并在容器中挂载三个 cgroup 控制器
 
+在挂载文件系统时，已经完成要求。根据实验要求（用户态内存上限、内核内存上限、禁用交换空间、设置 CPU 配额、设置 PID 数量上限）创建三个 cgroup 目录并在各个新创建的 cgroup 中设置限制：
+
+```cpp
+FILE *fp = 0;
+int pid = getpid();
+mkdir("/sys/fs/cgroup/memory/test", DEFFILEMODE);
+mkdir("/sys/fs/cgroup/cpu,cpuacct/test", DEFFILEMODE);
+mkdir("/sys/fs/cgroup/pids/test", DEFFILEMODE);
+fp = fopen("/sys/fs/cgroup/memory/test/memory.limit_in_bytes", "w");
+fprintf(fp, "%d", 67108864);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/memory/test/memory.kmem.limit_in_bytes", "w");
+fprintf(fp, "%d", 67108864);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/memory/test/memory.swappiness", "w");
+fprintf(fp, "%d", 0);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/memory/test/cgroup.procs", "w");
+fprintf(fp, "%d", pid);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/cpu,cpuacct/test/cpu.shares", "w");
+fprintf(fp, "%d", 256);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/cpu,cpuacct/test/cgroup.procs", "w");
+fprintf(fp, "%d", pid);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/pids/test/pids.max", "w");
+fprintf(fp, "%d", 64);
+fclose(fp);
+fp = fopen("/sys/fs/cgroup/pids/test/cgroup.procs", "w");
+fprintf(fp, "%d", pid);
+fclose(fp);
+```
+
+清理刚才创建的 cgroup：
+
+```cpp
+rmdir("/sys/fs/cgroup/memory/test");
+rmdir("/sys/fs/cgroup/cpu,cpuacct/test");
+rmdir("/sys/fs/cgroup/pids/test");
+```
+
 # 思考题
 
 ## 用于限制进程能够进行的系统调用的 seccomp 模块实际使用的系统调用是哪个？用于控制进程能力的 capabilities 实际使用的系统调用是哪个？尝试说明为什么本文最上面认为「该系统调用非常复杂」。
