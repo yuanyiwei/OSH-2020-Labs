@@ -60,6 +60,18 @@ rmdir(oldrootdirinc);
 
 ## 为容器中的进程移除能力
 
+用 libcap-ng 设置白名单：
+
+```cpp
+capng_clear(CAPNG_SELECT_BOTH);
+if (capng_updatev(CAPNG_ADD,
+                    CAPNG_EFFECTIVE | CAPNG_PERMITTED,
+                    CAP_SETPCAP, CAP_MKNOD, CAP_AUDIT_WRITE, CAP_CHOWN, CAP_NET_RAW, CAP_DAC_OVERRIDE, CAP_FOWNER, CAP_FSETID, CAP_KILL, CAP_SETGID, CAP_SETUID, CAP_NET_BIND_SERVICE, CAP_SYS_CHROOT, CAP_SETFCAP, -1) == -1)
+    error_exit(errorcapabilities, "error capng update\n");
+if (capng_apply(CAPNG_SELECT_BOTH) == -1)
+    error_exit(errorcapabilities, "error capng apply\n");
+```
+
 ## 限制容器的系统调用
 
 ## 使用 cgroup 限制容器中的系统资源使用并在容器中挂载三个 cgroup 控制器
