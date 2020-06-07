@@ -1,12 +1,12 @@
-#define _GNU_SOURCE // Required for enabling clone(2)
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <sched.h>	   // For clone(2)
-#include <signal.h>	   // For SIGCHLD constant
-#include <sys/mman.h>  // For mmap(2)
-#include <sys/types.h> // For wait(2)
-#include <sys/wait.h>  // For wait(2)
+#include <sched.h>
+#include <signal.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/mount.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
@@ -124,13 +124,10 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_getres_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_gettime64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(clock_nanosleep_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(close), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(connect), 0) != 0)
@@ -229,7 +226,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futex_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(futimesat), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcpu), 0) != 0)
@@ -322,7 +318,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_pgetevents_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_get), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioprio_set), 0) != 0)
@@ -397,10 +392,8 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedreceive_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_timedsend_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mq_unlink), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mremap), 0) != 0)
@@ -441,7 +434,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ppoll_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(prctl), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pread64), 0) != 0)
@@ -454,7 +446,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pselect6_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwrite64), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(pwritev), 0) != 0)
@@ -477,7 +468,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmmsg_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(recvmsg), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(remap_file_pages), 0) != 0)
@@ -508,7 +498,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_sigtimedwait_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rt_tgsigqueueinfo), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getaffinity), 0) != 0)
@@ -525,7 +514,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_rr_get_interval_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setaffinity), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_setattr), 0) != 0)
@@ -548,7 +536,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(semtimedop_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(send), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sendfile), 0) != 0)
@@ -681,18 +668,14 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_gettime64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timer_settime64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_create), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_gettime64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(timerfd_settime64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(times), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(tkill), 0) != 0)
@@ -715,7 +698,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	// if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimensat_time64), 0) != 0)error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(utimes), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(vfork), 0) != 0)
@@ -784,10 +766,10 @@ int main(int argc, char **argv)
 		error_exit(1, argv[1]);
 	FILE *fp = 0;
 	void *child_stack = mmap(NULL,									  //addr为NULL，则内核选择（页面对齐的起始）地址
-							 STACK_SIZE,							  // 页面大小
+							 STACK_SIZE,							  //页面大小
 							 PROT_READ | PROT_WRITE,				  //页面可读可写
 							 MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, //私有 不以任何文件为基础 线程堆栈
-							 -1, 0);								  //-1是因为 MAP_ANONYMOUS 否则应为文件句柄
+							 -1, 0);								  //-1是因为 MAP_ANONYMOUS，否则应为文件句柄
 	void *child_stack_start = child_stack + STACK_SIZE;				  //起始指针倒着增长
 	int status, ecode = 0;
 	int pid = getpid();
@@ -819,7 +801,7 @@ int main(int argc, char **argv)
 	fprintf(fp, "%d", pid);
 	fclose(fp);
 
-	int ch = clone(child, child_stack_start, CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWCGROUP | SIGCHLD, argv + 2); //child：子进程的main函数  child_stack_start子进程起始地址 SIGCHLD(wait) name进程参数
+	int ch = clone(child, child_stack_start, CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWCGROUP | SIGCHLD, argv + 2); //child 子进程的main函数  child_stack_start子进程起始地址 SIGCHLD(wait) name进程参数
 	if (ch != -1)
 	{
 		wait(&status);

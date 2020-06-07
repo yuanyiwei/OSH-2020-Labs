@@ -4,7 +4,9 @@ PB18000221 袁一玮
 
 编译使用：gcc -o lab4 lab4.c -lcap-ng -lseccomp
 
-## 隔离命名空间
+## 实验内容
+
+### 隔离命名空间
 
 ```cpp
 int ch = clone(child, child_stack_start, CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC | CLONE_NEWPID | CLONE_NEWCGROUP | SIGCHLD, argv + 2);
@@ -12,7 +14,7 @@ int ch = clone(child, child_stack_start, CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWI
 
 把几个命名空间 flag 加入即可。
 
-## 挂载文件系统
+### 挂载文件系统
 
 先把根挂载为私有：
 
@@ -41,7 +43,7 @@ mknod("/dev/urandom", 666 | S_IFCHR, makedev(1, 9));
 mknod("/dev/zero", 666 | S_IFCHR, makedev(1, 5));
 ```
 
-## 使用 pivot_root 并从主机上隐藏容器的挂载点
+### 使用 pivot_root 并从主机上隐藏容器的挂载点
 
 过程出现在挂载的中间，先把根放到临时目录 tmpdir 下，尝试 cd 移动目录。之后使用 umount2 将旧根惰性卸载，不影响正在使用该文件系统结构的进程，再使用 `rmdir("/oldroot")` 即可。
 
@@ -60,7 +62,7 @@ sprintf(oldrootdirinc, "/oldroot%s", tmpdir);
 rmdir(oldrootdirinc);
 ```
 
-## 为容器中的进程移除能力
+### 为容器中的进程移除能力
 
 用 libcap-ng 设置白名单：
 
@@ -74,11 +76,13 @@ if (capng_apply(CAPNG_SELECT_BOTH) == -1)
     error_exit(errorcapabilities, "error capng apply\n");
 ```
 
-## 限制容器的系统调用
+### 限制容器的系统调用
 
 先 `seccomp_init` 初始化过滤状态，再用 `seccomp_rule_add` 添加宏 `SCMP_SYS(syscall)` 生成白名单系统调用的调用号，最后 `seccomp_load` 应用过滤规则。
 
-## 使用 cgroup 限制容器中的系统资源使用并在容器中挂载三个 cgroup 控制器
+去除 18 个关于 time64 的无法编译通过的系统调用。
+
+### 使用 cgroup 限制容器中的系统资源使用并在容器中挂载三个 cgroup 控制器
 
 在挂载文件系统时，已经完成要求。根据实验要求（用户态内存上限、内核内存上限、禁用交换空间、设置 CPU 配额、设置 PID 数量上限）创建三个 cgroup 目录并在各个新创建的 cgroup 中设置限制：
 
@@ -122,12 +126,20 @@ rmdir("/sys/fs/cgroup/cpu,cpuacct/test");
 rmdir("/sys/fs/cgroup/pids/test");
 ```
 
-# 思考题
+## 思考题
 
-## 用于限制进程能够进行的系统调用的 seccomp 模块实际使用的系统调用是哪个？用于控制进程能力的 capabilities 实际使用的系统调用是哪个？尝试说明为什么本文最上面认为「该系统调用非常复杂」。
+### 思考题 1
 
-## 当你用 cgroup 限制了容器中的 CPU 与内存等资源后，容器中的所有进程都不能够超额使用资源，但是诸如 htop 等「任务管理器」类的工具仍然会显示主机上的全部 CPU 和内存（尽管无法使用）。查找资料，说明原因，尝试提出一种解决方案，使任务管理器一类的程序能够正确显示被限制后的可用 CPU 和内存（不要求实现）。
+用于限制进程能够进行的系统调用的 seccomp 模块实际使用的系统调用是哪个？用于控制进程能力的 capabilities 实际使用的系统调用是哪个？尝试说明为什么本文最上面认为「该系统调用非常复杂」。
 
-# 参考
+### 思考题 2
 
-- https://veritas501.space/2018/05/05/seccomp%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/
+当你用 cgroup 限制了容器中的 CPU 与内存等资源后，容器中的所有进程都不能够超额使用资源，但是诸如 htop 等「任务管理器」类的工具仍然会显示主机上的全部 CPU 和内存（尽管无法使用）。查找资料，说明原因，尝试提出一种解决方案，使任务管理器一类的程序能够正确显示被限制后的可用 CPU 和内存（不要求实现）。
+
+容器展示的状态信息是从 /proc 目录中的相关文件里读取出来的，这部分与主机一致，会直接读出来主机的全部 CPU 和内存的值。
+
+LXCFS（FUSE filesystem for LXC）会在指定目录中自行维护与上面列出的 /proc 目录中同名的文件，容器从 lxcfs 维护的 /proc 文件中读取数据时，得到的是容器内的数据而不是宿主机的状态。
+
+## 参考
+
+- <https://veritas501.space/2018/05/05/seccomp%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/>
