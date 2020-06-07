@@ -2,6 +2,8 @@
 
 PB18000221 袁一玮
 
+编译使用：gcc -o lab4 lab4.c -lcap-ng -lseccomp
+
 ## 隔离命名空间
 
 ```cpp

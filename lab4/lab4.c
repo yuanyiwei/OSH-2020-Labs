@@ -336,12 +336,6 @@ int child(void *arg)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_submit), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
-	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_uring_enter), 0) != 0)
-		error_exit(errorseccomp, "seccomp");
-	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_uring_register), 0) != 0)
-		error_exit(errorseccomp, "seccomp");
-	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(io_uring_setup), 0) != 0)
-		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ipc), 0) != 0)
 		error_exit(errorseccomp, "seccomp");
 	if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(kill), 0) != 0)
