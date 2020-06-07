@@ -132,6 +132,10 @@ rmdir("/sys/fs/cgroup/pids/test");
 
 用于限制进程能够进行的系统调用的 seccomp 模块实际使用的系统调用是哪个？用于控制进程能力的 capabilities 实际使用的系统调用是哪个？尝试说明为什么本文最上面认为「该系统调用非常复杂」。
 
+seccomp 和 capabilities 是使用 prctl 系统调用实现的。
+
+在 <sys/prctl.h> 中，可以看到函数原型 `int prctl(int, unsigned long, unsigned long, unsigned long, unsigned long)` 是为进程制定而设计的。它可以控制进程所能进行的系统调用和其能力权限，功能较多。（「非常复杂」可能是因为功能较多吧，是第一个 int 参数）
+
 ### 思考题 2
 
 当你用 cgroup 限制了容器中的 CPU 与内存等资源后，容器中的所有进程都不能够超额使用资源，但是诸如 htop 等「任务管理器」类的工具仍然会显示主机上的全部 CPU 和内存（尽管无法使用）。查找资料，说明原因，尝试提出一种解决方案，使任务管理器一类的程序能够正确显示被限制后的可用 CPU 和内存（不要求实现）。
@@ -143,3 +147,5 @@ LXCFS（FUSE filesystem for LXC）会在指定目录中自行维护与上面列�
 ## 参考
 
 - <https://veritas501.space/2018/05/05/seccomp%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/>
+- <https://www.ibm.com/developerworks/cn/linux/l-posixcap.html>
+- <https://darkwing.moe/2019/08/08/seccomp/>
